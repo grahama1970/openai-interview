@@ -10,6 +10,11 @@ class FakeMemory:
     def recall(self, _req):
         return MemoryRecallResult(status='pass', found=True, should_scan=False, confidence=0.9, item_count=1, items=[{'_key': 'lesson1'}])
 
+    def store(self, collection, document):
+        assert collection == 'openai_interview_receipts'
+        assert document['schema'] == 'openai_interview.eval_batch_receipt.v1'
+        return 'openai_interview_receipts/b1'
+
 
 def test_health_live() -> None:
     client = TestClient(create_app())
@@ -33,6 +38,7 @@ def test_eval_batch_uses_memory(monkeypatch) -> None:
         'batch_id': 'b1',
         'purpose': 'Validate Memory-backed eval route',
         'classification': 'internal',
+        'persist_to_memory': True,
         'items': [{
             'item_id': 'i1',
             'question': 'What evidence supports the Memory-native persistence choice?',
@@ -43,3 +49,4 @@ def test_eval_batch_uses_memory(monkeypatch) -> None:
     body = response.json()
     assert body['status'] == 'pass'
     assert body['results'][0]['memory_refs'] == ['lesson1']
+    assert body['receipt_refs'] == ['openai_interview_receipts/b1']

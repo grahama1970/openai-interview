@@ -1,3 +1,4 @@
+"""Environment-backed settings for the control-plane demo."""
 from __future__ import annotations
 
 from pydantic import Field

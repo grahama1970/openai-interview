@@ -1,3 +1,4 @@
+"""Pydantic contracts for the OpenAI interview control-plane demo."""
 from __future__ import annotations
 
 from typing import Any, Literal
@@ -81,6 +82,8 @@ class EvalBatchRequest(BaseModel):
     items: list[EvalItemRequest] = Field(min_length=1, max_length=50)
     memory_scope: str = "openai-interview"
     tags: list[str] = Field(default_factory=lambda: ["openai-interview", "cyber-safety"])
+    persist_to_memory: bool = False
+    memory_collection: str = "openai_interview_receipts"
     classification: Classification = "internal"
 
 

@@ -1,3 +1,4 @@
+"""Framework-neutral service functions for eval batches."""
 from __future__ import annotations
 
 import hashlib
@@ -44,4 +45,22 @@ class EvalService:
                 classification=item.classification,
             ))
         overall = "pass" if all(row.status == "pass" for row in results) else "blocked"
-        return EvalBatchResult(batch_id=req.batch_id, status=overall, results=results)
+        batch = EvalBatchResult(batch_id=req.batch_id, status=overall, results=results)
+        if req.persist_to_memory:
+            doc = {
+                "_key": req.batch_id,
+                "schema": "openai_interview.eval_batch_receipt.v1",
+                "kind": "openai_interview_eval_batch_receipt",
+                "batch_id": req.batch_id,
+                "purpose": req.purpose,
+                "status": batch.status,
+                "tags": req.tags,
+                "classification": req.classification,
+                "retrieval_text": f"{req.purpose} status={batch.status} tags={' '.join(req.tags)}",
+                "result_count": len(batch.results),
+                "results": [row.model_dump(mode="json") for row in batch.results],
+            }
+            ref = self.memory.store(req.memory_collection, doc)
+            if ref:
+                batch.receipt_refs.append(ref)
+        return batch

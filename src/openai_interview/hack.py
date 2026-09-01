@@ -1,6 +1,8 @@
+"""Bounded Hack skill gateway for safety preflight verification."""
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -27,7 +29,10 @@ class HackGateway:
         argv = [str(run_sh), "verify"]
         if req.artifact_root:
             argv += ["--out", req.artifact_root]
-        proc = subprocess.run(argv, text=True, capture_output=True, timeout=90)
+        env = os.environ.copy()
+        env.pop("VIRTUAL_ENV", None)
+        env["PATH"] = "/home/graham/.local/bin:/usr/local/bin:/usr/bin:/bin"
+        proc = subprocess.run(argv, text=True, capture_output=True, timeout=90, env=env)
         receipt = None
         try:
             receipt = json.loads(proc.stdout).get("receipt")

@@ -1,3 +1,4 @@
+"""Check the demo contract files without starting services."""
 from __future__ import annotations
 
 import json

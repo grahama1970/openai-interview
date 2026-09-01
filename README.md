@@ -11,6 +11,8 @@ This is not OpenAI software and does not claim access to Astra internals. It sho
 - `memory.py`: `$memory` HTTP adapter; ArangoDB/Qdrant stay behind Memory.
 - `hack.py`: bounded `$hack verify` integration.
 - `main.py`: FastAPI adapter.
+- `web/`: React/Vite operator surface with `data-qid` checks.
+- `infra/terraform/`: skill-scaffolded deployment handoff, checked by `$ops-terraform`.
 
 No PostgreSQL is used. Durable state goes through `$memory` endpoints.
 
@@ -21,6 +23,17 @@ cp .env.example .env
 uv run --extra dev pytest
 scripts/dev.sh      # FastAPI hot reload on 127.0.0.1:8080
 scripts/dev-all.sh  # FastAPI hot reload + Vite React hot reload
+```
+
+## Skill links
+
+`skills` is a symlink to `/home/graham/workspace/experiments/agent-skills/skills`, so local checks use the canonical `$memory`, `$hack`, `$terraform`, `$ops-terraform`, `$best-practices-fastapi`, `$best-practices-python`, and `$agentic-evals` implementations.
+
+## Terraform handoff
+
+```bash
+scripts/terraform_check.sh
+scripts/terraform_plan.sh  # prints the plan-only handoff; it never applies
 ```
 
 ## Verify

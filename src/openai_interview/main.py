@@ -1,3 +1,4 @@
+"""FastAPI adapter for the OpenAI interview control-plane demo."""
 from __future__ import annotations
 
 from fastapi import Depends, FastAPI

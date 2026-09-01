@@ -1,6 +1,9 @@
+"""HTTP gateway for Memory-native recall."""
 from __future__ import annotations
 
 import httpx
+
+from typing import Any
 
 from .contracts import ControlPlaneError, MemoryRecallRequest, MemoryRecallResult
 from .settings import settings
@@ -38,3 +41,13 @@ class MemoryGateway:
             item_count=len(data.get("items", [])),
             items=data.get("items", [])[: req.k],
         )
+
+    def store(self, collection: str, document: dict[str, Any]) -> str | None:
+        try:
+            with httpx.Client(base_url=self.base_url, timeout=settings.request_timeout_seconds) as client:
+                response = client.post("/store", json={"collection": collection, "document": document})
+                response.raise_for_status()
+                data = response.json()
+        except Exception:
+            return None
+        return data.get("_id") or data.get("id") or data.get("key") or document.get("_key")

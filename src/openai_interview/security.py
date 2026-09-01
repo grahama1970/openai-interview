@@ -1,3 +1,4 @@
+"""API-key guard for local demo endpoints."""
 from __future__ import annotations
 
 from fastapi import Header, HTTPException, status
