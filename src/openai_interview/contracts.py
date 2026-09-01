@@ -122,6 +122,39 @@ class HackVerifyRequest(BaseModel):
     classification: Classification = "internal"
 
 
+class HackAuditRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    target_kind: Literal["self", "demo_vulnerable_python"] = "demo_vulnerable_python"
+    tool: Literal["bandit", "semgrep", "all"] = "bandit"
+    severity: Literal["low", "medium", "high"] = "low"
+    persist_to_memory: bool = True
+    memory_collection: str = "openai_interview_hack_scans"
+    classification: Classification = "internal"
+
+
+class HackAuditResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    schema_: Literal["openai_interview.hack_audit.v1"] = Field(
+        default="openai_interview.hack_audit.v1",
+        alias="schema",
+    )
+    status: Status
+    target_kind: str
+    tool: str
+    command: list[str]
+    finding_count: int = 0
+    high_count: int = 0
+    cwes: list[str] = Field(default_factory=list)
+    output_path: str | None = None
+    receipt_ref: str | None = None
+    stdout_tail: str = ""
+    stderr_tail: str = ""
+    error: ControlPlaneError | None = None
+    classification: Classification = "internal"
+
+
 class HackVerifyResult(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 

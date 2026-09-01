@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     memory_url: str = "http://127.0.0.1:8601"
     agent_skills_root: str = "/home/graham/workspace/experiments/agent-skills"
     enable_hack_verify: bool = False
+    enable_hack_audit: bool = False
+    hack_timeout_seconds: float = Field(default=180.0, gt=0, le=900)
     request_timeout_seconds: float = Field(default=10.0, gt=0, le=60)
 
 

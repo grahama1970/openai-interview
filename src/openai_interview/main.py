@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import Depends, FastAPI
 
-from .contracts import EvalBatchRequest, EvalBatchResult, HackVerifyRequest, HackVerifyResult, Health, MemoryRecallRequest, MemoryRecallResult
+from .contracts import EvalBatchRequest, EvalBatchResult, HackAuditRequest, HackAuditResult, HackVerifyRequest, HackVerifyResult, Health, MemoryRecallRequest, MemoryRecallResult
 from .hack import HackGateway
 from .memory import MemoryGateway
 from .security import require_api_key
@@ -14,7 +14,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="OpenAI Interview Control Plane", version="0.1.0")
     memory = MemoryGateway()
     evals = EvalService(memory)
-    hack = HackGateway()
+    hack = HackGateway(memory)
 
     @app.get("/health/live", response_model=Health)
     def live() -> Health:
@@ -31,6 +31,10 @@ def create_app() -> FastAPI:
     @app.post("/v1/hack/verify", response_model=HackVerifyResult, dependencies=[Depends(require_api_key)])
     def hack_verify(req: HackVerifyRequest) -> HackVerifyResult:
         return hack.verify(req)
+
+    @app.post("/v1/hack/audit", response_model=HackAuditResult, dependencies=[Depends(require_api_key)])
+    def hack_audit(req: HackAuditRequest) -> HackAuditResult:
+        return hack.audit(req)
 
     return app
 

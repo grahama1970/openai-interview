@@ -9,7 +9,7 @@ This is not OpenAI software and does not claim access to Astra internals. It sho
 - `contracts.py`: Pydantic request/response/receipt models.
 - `service.py`: framework-neutral logic.
 - `memory.py`: `$memory` HTTP adapter; ArangoDB/Qdrant stay behind Memory.
-- `hack.py`: bounded `$hack verify` integration.
+- `hack.py`: bounded `$hack verify` plus `$hack audit` integration. The audit route is disabled unless `OPENAI_INTERVIEW_ENABLE_HACK_AUDIT=true` and only accepts `self` or `demo_vulnerable_python` targets.
 - `main.py`: FastAPI adapter.
 - `web/`: React/Vite operator surface with `data-qid` checks.
 - `infra/terraform/`: skill-scaffolded deployment handoff, checked by `$ops-terraform`.
@@ -34,6 +34,7 @@ scripts/dev-all.sh  # FastAPI hot reload + Vite React hot reload
 ```bash
 scripts/terraform_check.sh
 scripts/terraform_plan.sh  # prints the plan-only handoff; it never applies
+scripts/probe_hack_audit_endpoint.sh  # proves FastAPI -> $hack audit -> $memory readback
 ```
 
 ## Verify
