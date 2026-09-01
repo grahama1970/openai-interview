@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "skill": "openai-interview-control-plane",
+  "trials": 3,
+  "proof_scope": "Memory-native FastAPI control-plane contracts, API adapter, React data-qid surface, and hot-reload/dev verification scripts",
+  "claims": {
+    "proves": "the repo has a working pyproject, Pydantic contracts, API tests, Memory-first request validation, React data-qid checks, and a verification script",
+    "does_not_prove": "OpenAI/Astra internals, Azure deployment, live Hack scanning, or live Memory write success"
+  },
+  "cases": [
+    {
+      "name": "verify-script",
+      "type": "positive",
+      "real_world": true,
+      "command": ["bash", "../scripts/verify.sh"],
+      "expected": {"exit_code": 0, "stdout_contains": ["openai_interview.verify.v1", "PASS"]},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "memory-first-contract-rejects-non-memory-chain",
+      "type": "adversarial",
+      "real_world": true,
+      "command": ["uv", "run", "--extra", "dev", "pytest", "../tests/test_contracts.py::test_eval_contract_requires_memory_first"],
+      "expected": {"exit_code": 0}
+    },
+    {
+      "name": "react-data-qid-contract",
+      "type": "positive",
+      "real_world": true,
+      "command": ["bash", "-c", "cd ../web && npm install --silent && npm run --silent verify:data-qid"],
+      "expected": {"exit_code": 0, "stdout_contains": ["OK:"]},
+      "timeout_seconds": 180
+    },
+    {
+      "name": "no-postgres-dependency",
+      "type": "negative",
+      "command": ["python3", "-c", "from pathlib import Path\ntext=Path('../pyproject.toml').read_text().lower()\nassert 'postgres' not in text and 'sqlalchemy' not in text and 'psycopg' not in text\n"],
+      "expected": {"exit_code": 0}
+    }
+  ]
+}

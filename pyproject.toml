@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openai-interview-control-plane"
+version = "0.1.0"
+description = "Memory-native FastAPI cyber-safety eval control-plane interview artifact"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "uvicorn>=0.34,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<9", "pytest-cov>=6,<8"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openai_interview"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
