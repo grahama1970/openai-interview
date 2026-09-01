@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+mkdir -p receipts/agentic
 if [ -z "${PORT:-}" ]; then
   PORT="$(uv run --extra dev python - <<'PY'
 import socket
@@ -41,5 +42,7 @@ assert readback['count']==1, readback
 doc=readback['documents'][0]
 assert doc['schema']=='openai_interview.eval_batch_receipt.v1'
 assert doc['classification']=='internal'
-print(json.dumps({'schema':'openai_interview.probe.memory_persist.v1','status':'PASS','key':key,'readback_count':readback['count']}))
+receipt={'schema':'openai_interview.probe.memory_persist.v1','status':'PASS','key':key,'readback_count':readback['count'],'stored_schema':doc['schema']}
+Path('receipts/agentic/live-memory-persist.json').write_text(json.dumps(receipt, indent=2))
+print(json.dumps(receipt))
 PY

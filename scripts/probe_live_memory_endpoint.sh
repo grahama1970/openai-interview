@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+mkdir -p receipts/agentic
 if [ -z "${PORT:-}" ]; then
   PORT="$(uv run --extra dev python - <<'PY'
 import socket
@@ -26,7 +27,7 @@ curl -fsS -X POST "http://127.0.0.1:$PORT/v1/memory/recall" \
   -H 'x-api-key: dev-key' \
   -d '{"q":"What evidence supports using Memory ArangoDB and Qdrant for this control plane?","scope":"openai-interview","collections":["lessons"],"tags":["openai-interview","cyber-safety"],"k":3,"classification":"internal"}' \
   >/tmp/openai_interview_probe_memory_response.json
-python3 - <<'PY'
+uv run --extra dev python - <<'PY'
 import json
 from pathlib import Path
 body=json.loads(Path('/tmp/openai_interview_probe_memory_response.json').read_text())
@@ -34,5 +35,7 @@ assert body['schema']=='openai_interview.memory_recall.v1'
 assert body['status'] in {'pass','blocked'}
 assert isinstance(body['item_count'], int)
 assert body['classification']=='internal'
-print(json.dumps({'schema':'openai_interview.probe.memory.v1','status':'PASS','memory_status':body['status'],'item_count':body['item_count']}))
+receipt={'schema':'openai_interview.probe.memory.v1','status':'PASS','memory_status':body['status'],'item_count':body['item_count'],'readback_path':'/tmp/openai_interview_probe_memory_response.json'}
+Path('receipts/agentic/live-memory-recall.json').write_text(json.dumps(receipt, indent=2))
+print(json.dumps(receipt))
 PY

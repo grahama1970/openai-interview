@@ -2,55 +2,197 @@
   "version": 2,
   "skill": "openai-interview-control-plane",
   "trials": 3,
-  "proof_scope": "Memory-native FastAPI control-plane contracts, API adapter, React data-qid surface, Hack safety preflight, Terraform handoff, and hot-reload/dev verification scripts",
+  "proof_scope": "Claim-based and seam-based checks for the Memory-native FastAPI control plane, live Memory recall/persistence, bounded Hack verification, Terraform handoff, React qid surface, and hot-reload dev loop.",
   "claims": {
-    "proves": "the repo has a working pyproject, Pydantic contracts, API tests, Memory-first request validation, live Memory endpoint/persistence probes, bounded Hack verify endpoint, React data-qid checks, Terraform handoff checks, and a verification script",
-    "does_not_prove": "OpenAI/Astra internals, Azure deployment, full live Hack scanning/session-audit, or production readiness"
+    "proves": "the declared OpenAI interview control-plane seams have repeated deterministic or live guards with readback where required",
+    "does_not_prove": "OpenAI/Astra internals, Azure deployment, full live Hack session-audit/scanning, Terraform apply, or production readiness"
   },
+  "capability_claims": [
+    {
+      "id": "openai_interview.contracts",
+      "description": "Pydantic contracts, auth gate, and Memory-first batch shape validate through project tests.",
+      "criticality": "critical",
+      "evidence_required": {"deterministic": true}
+    },
+    {
+      "id": "openai_interview.memory_native",
+      "description": "The service calls Memory endpoints for recall and stores eval receipts through Memory with independent readback.",
+      "criticality": "critical",
+      "evidence_required": {"deterministic": true, "live_e2e": true}
+    },
+    {
+      "id": "openai_interview.hack_verify_boundary",
+      "description": "The Hack integration is bounded to verify-mode safety preflight and reads back a Hack receipt.",
+      "criticality": "critical",
+      "evidence_required": {"live_e2e": true}
+    },
+    {
+      "id": "openai_interview.terraform_handoff",
+      "description": "Terraform is present only as a check/plan handoff and validates without apply.",
+      "criticality": "critical",
+      "evidence_required": {"deterministic": true}
+    },
+    {
+      "id": "openai_interview.ui_and_dev_loop",
+      "description": "The React surface has qid affordances and the FastAPI/Vite dev loop serves both sides.",
+      "criticality": "critical",
+      "evidence_required": {"deterministic": true, "live_e2e": true}
+    }
+  ],
+  "seams": [
+    {
+      "seam_id": "contracts.pydantic_validation",
+      "seam_type": "pure deterministic transform",
+      "criticality": "critical",
+      "claim_id": "openai_interview.contracts",
+      "required_evidence": ["deterministic"]
+    },
+    {
+      "seam_id": "memory.recall_endpoint",
+      "seam_type": "external HTTP/API/provider",
+      "criticality": "critical",
+      "claim_id": "openai_interview.memory_native",
+      "required_evidence": ["live_e2e"]
+    },
+    {
+      "seam_id": "memory.persist_readback",
+      "seam_type": "persistent state/database/index",
+      "criticality": "critical",
+      "claim_id": "openai_interview.memory_native",
+      "required_evidence": ["live_e2e"]
+    },
+    {
+      "seam_id": "dependency.no_postgres",
+      "seam_type": "pure deterministic transform",
+      "criticality": "critical",
+      "claim_id": "openai_interview.memory_native",
+      "required_evidence": ["deterministic"]
+    },
+    {
+      "seam_id": "hack.verify_endpoint",
+      "seam_type": "security/compliance/human-authority",
+      "criticality": "critical",
+      "claim_id": "openai_interview.hack_verify_boundary",
+      "required_evidence": ["live_e2e"]
+    },
+    {
+      "seam_id": "terraform.check_handoff",
+      "seam_type": "filesystem/process",
+      "criticality": "critical",
+      "claim_id": "openai_interview.terraform_handoff",
+      "required_evidence": ["deterministic"]
+    },
+    {
+      "seam_id": "ui.data_qid",
+      "seam_type": "browser/UI transport",
+      "criticality": "critical",
+      "claim_id": "openai_interview.ui_and_dev_loop",
+      "required_evidence": ["deterministic"]
+    },
+    {
+      "seam_id": "dev.hot_reload",
+      "seam_type": "filesystem/process",
+      "criticality": "critical",
+      "claim_id": "openai_interview.ui_and_dev_loop",
+      "required_evidence": ["live_e2e"]
+    }
+  ],
   "cases": [
     {
       "name": "verify-script",
       "type": "positive",
+      "evidence_class": "deterministic",
       "real_world": true,
+      "supports_claims": ["openai_interview.contracts", "openai_interview.memory_native", "openai_interview.terraform_handoff", "openai_interview.ui_and_dev_loop"],
+      "seams": ["contracts.pydantic_validation", "terraform.check_handoff", "ui.data_qid"],
       "command": ["bash", "../scripts/verify.sh"],
-      "expected": {"exit_code": 0, "stdout_contains": ["openai_interview.verify.v1", "PASS"]},
+      "expected": {"exit_code": 0, "stdout_contains": ["openai_interview.verify.v1", "PASS", "PYTHON_STANDARDS_OK", "ops_terraform.check.v1"]},
       "timeout_seconds": 180
     },
     {
       "name": "memory-first-contract-rejects-non-memory-chain",
       "type": "adversarial",
+      "evidence_class": "deterministic",
       "real_world": true,
+      "supports_claims": ["openai_interview.contracts", "openai_interview.memory_native"],
+      "seams": ["contracts.pydantic_validation"],
       "command": ["uv", "run", "--extra", "dev", "pytest", "../tests/test_contracts.py::test_eval_contract_requires_memory_first"],
-      "expected": {"exit_code": 0}
+      "expected": {"exit_code": 0, "stdout_contains": ["passed"]}
     },
     {
       "name": "live-memory-recall-endpoint",
       "type": "positive",
+      "evidence_class": "live_e2e",
       "real_world": true,
+      "readback": true,
+      "supports_claims": ["openai_interview.memory_native"],
+      "seams": ["memory.recall_endpoint"],
       "command": ["bash", "../scripts/probe_live_memory_endpoint.sh"],
-      "expected": {"exit_code": 0, "stdout_contains": ["openai_interview.probe.memory.v1", "PASS"]},
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": ["openai_interview.probe.memory.v1", "PASS"],
+        "artifacts": [{"path": "../receipts/agentic/live-memory-recall.json", "json_pointer": "/status", "equals": "PASS"}]
+      },
       "timeout_seconds": 180
     },
     {
       "name": "live-memory-persist-readback",
       "type": "positive",
+      "evidence_class": "live_e2e",
       "real_world": true,
+      "readback": true,
+      "supports_claims": ["openai_interview.memory_native"],
+      "seams": ["memory.persist_readback"],
       "command": ["bash", "../scripts/probe_memory_persist.sh"],
-      "expected": {"exit_code": 0, "stdout_contains": ["openai_interview.probe.memory_persist.v1", "readback_count"]},
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": ["openai_interview.probe.memory_persist.v1", "readback_count"],
+        "artifacts": [
+          {"path": "../receipts/agentic/live-memory-persist.json", "json_pointer": "/status", "equals": "PASS"},
+          {"path": "../receipts/agentic/live-memory-persist.json", "json_pointer": "/readback_count", "equals": 1}
+        ]
+      },
       "timeout_seconds": 180
     },
     {
       "name": "hack-verify-endpoint",
       "type": "positive",
+      "evidence_class": "live_e2e",
       "real_world": true,
+      "readback": true,
+      "supports_claims": ["openai_interview.hack_verify_boundary"],
+      "seams": ["hack.verify_endpoint"],
       "command": ["bash", "../scripts/probe_hack_endpoint.sh"],
-      "expected": {"exit_code": 0, "stdout_contains": ["openai_interview.probe.hack.v1", "PASS"]},
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": ["openai_interview.probe.hack.v1", "PASS"],
+        "artifacts": [{"path": "../receipts/agentic/hack-verify-endpoint.json", "json_pointer": "/status", "equals": "PASS"}]
+      },
       "timeout_seconds": 180
+    },
+    {
+      "name": "hot-reload-dev-loop",
+      "type": "positive",
+      "evidence_class": "live_e2e",
+      "real_world": true,
+      "readback": true,
+      "supports_claims": ["openai_interview.ui_and_dev_loop"],
+      "seams": ["dev.hot_reload"],
+      "command": ["bash", "../scripts/probe_hot_reload.sh"],
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": ["openai_interview.probe.hot_reload.v1", "PASS"],
+        "artifacts": [{"path": "../receipts/agentic/hot-reload.json", "json_pointer": "/status", "equals": "PASS"}]
+      },
+      "timeout_seconds": 240
     },
     {
       "name": "react-data-qid-contract",
       "type": "positive",
+      "evidence_class": "deterministic",
       "real_world": true,
+      "supports_claims": ["openai_interview.ui_and_dev_loop"],
+      "seams": ["ui.data_qid"],
       "command": ["bash", "-c", "cd ../web && npm install --silent && npm run --silent verify:data-qid"],
       "expected": {"exit_code": 0, "stdout_contains": ["OK:"]},
       "timeout_seconds": 180
@@ -58,13 +200,19 @@
     {
       "name": "terraform-skill-handoff-check",
       "type": "positive",
+      "evidence_class": "deterministic",
       "real_world": true,
+      "supports_claims": ["openai_interview.terraform_handoff"],
+      "seams": ["terraform.check_handoff"],
       "command": ["bash", "../scripts/terraform_check.sh"],
       "expected": {"exit_code": 0, "stdout_contains": ["ops_terraform.check.v1", "PASS"]}
     },
     {
       "name": "no-postgres-dependency",
       "type": "negative",
+      "evidence_class": "deterministic",
+      "supports_claims": ["openai_interview.memory_native"],
+      "seams": ["dependency.no_postgres"],
       "command": ["python3", "-c", "from pathlib import Path\ntext=Path('../pyproject.toml').read_text().lower()\nassert 'postgres' not in text and 'sqlalchemy' not in text and 'psycopg' not in text\n"],
       "expected": {"exit_code": 0}
     }
