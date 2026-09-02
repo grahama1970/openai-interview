@@ -43,7 +43,7 @@ client=httpx.Client(base_url='http://127.0.0.1:8601', timeout=httpx.Timeout(10.0
 readback=client.post('/list', json={'collection':'openai_interview_hack_scans','filters':{'_key':key},'limit':1}).json()
 assert readback['count']==1, readback
 doc=readback['documents'][0]
-assert doc['schema']=='openai_interview.hack_audit_receipt.v1'
+assert doc['schema']=='hack.audit_memory_summary.v1'
 assert doc['finding_count'] >= 1
 assert 'CWE-78' in doc['cwes']
 receipt={'schema':'openai_interview.probe.hack_audit.v1','status':'PASS','finding_count':body['finding_count'],'high_count':body['high_count'],'cwes':body['cwes'],'memory_ref':body['receipt_ref'],'readback_count':readback['count']}

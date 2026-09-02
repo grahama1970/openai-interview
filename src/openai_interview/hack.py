@@ -1,10 +1,8 @@
 """Bounded Hack skill gateway for safety preflight and local SAST scans."""
 from __future__ import annotations
 
-import hashlib
 import json
 import os
-import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -38,10 +36,7 @@ class HackGateway:
                 ),
             )
         if not run_sh.exists():
-            return HackVerifyResult(
-                status="blocked",
-                error=ControlPlaneError(code="hack_missing", message=str(run_sh)),
-            )
+            return HackVerifyResult(status="blocked", error=ControlPlaneError(code="hack_missing", message=str(run_sh)))
         argv = [str(run_sh), "verify"]
         if req.artifact_root:
             argv += ["--out", req.artifact_root]
@@ -56,10 +51,7 @@ class HackGateway:
             receipt=receipt,
             stdout_tail=proc.stdout[-2000:],
             stderr_tail=proc.stderr[-2000:],
-            error=None if proc.returncode == 0 else ControlPlaneError(
-                code="hack_verify_failed",
-                message=f"hack verify exited {proc.returncode}",
-            ),
+            error=None if proc.returncode == 0 else ControlPlaneError(code="hack_verify_failed", message=f"hack verify exited {proc.returncode}"),
         )
 
     def audit(self, req: HackAuditRequest) -> HackAuditResult:
@@ -76,39 +68,37 @@ class HackGateway:
                 ),
             )
         if not run_sh.exists():
-            return HackAuditResult(
-                status="blocked",
-                target_kind=req.target_kind,
-                tool=req.tool,
-                command=[],
-                error=ControlPlaneError(code="hack_missing", message=str(run_sh)),
-            )
+            return HackAuditResult(status="blocked", target_kind=req.target_kind, tool=req.tool, command=[], error=ControlPlaneError(code="hack_missing", message=str(run_sh)))
 
         with tempfile.TemporaryDirectory(prefix="openai-interview-hack-") as tmp:
             target = self._target(req.target_kind, Path(tmp))
             output = Path(tmp) / "hack-audit.json"
-            argv = [str(run_sh), "audit", str(target), "--tool", req.tool, "--severity", req.severity, "--no-recall", "--output", str(output)]
+            durable_receipt = Path("receipts/agentic/hack-audit-receipt.json")
+            durable_receipt.parent.mkdir(parents=True, exist_ok=True)
+            argv = [
+                str(run_sh), "audit", str(target),
+                "--tool", req.tool,
+                "--severity", req.severity,
+                "--no-recall",
+                "--output", str(output),
+                "--receipt-out", str(durable_receipt),
+            ]
+            argv.append("--memory-store" if req.persist_to_memory else "--no-memory-store")
+            argv += ["--memory-collection", req.memory_collection]
             proc = subprocess.run(argv, text=True, capture_output=True, timeout=settings.hack_timeout_seconds, env=self._env())
-            parsed = self._parse_output(output)
-            durable_output = Path("receipts/agentic/hack-audit-output.json")
-            durable_output.parent.mkdir(parents=True, exist_ok=True)
-            durable_output.write_text(json.dumps(parsed, indent=2))
-            text = "\n".join(v for v in (parsed.get("semgrep"), parsed.get("bandit")) if isinstance(v, str))
-            finding_count = text.count(">> Issue:") + text.count("Command execution sink detected")
-            high_count = text.count("Severity: High") + text.count("severity: ERROR")
-            cwes = sorted(set(re.findall(r"CWE-\d+", text)))
-            status = "pass" if proc.returncode == 0 and finding_count > 0 else "blocked" if proc.returncode == 0 else "fail"
-            receipt_ref = self._store_audit(req, status, finding_count, high_count, cwes, argv, text)
+            receipt = self._read_receipt(durable_receipt)
+            summary = receipt.get("summary", {})
+            status = "pass" if proc.returncode == 0 and summary.get("finding_count", 0) > 0 else "blocked" if proc.returncode == 0 else "fail"
             return HackAuditResult(
                 status=status,
                 target_kind=req.target_kind,
                 tool=req.tool,
                 command=argv,
-                finding_count=finding_count,
-                high_count=high_count,
-                cwes=cwes,
-                output_path=str(durable_output),
-                receipt_ref=receipt_ref,
+                finding_count=int(summary.get("finding_count", 0)),
+                high_count=int(summary.get("high_count", 0)),
+                cwes=list(summary.get("cwes", [])),
+                output_path=str(durable_receipt),
+                receipt_ref=(receipt.get("memory") or {}).get("store_ref"),
                 stdout_tail=proc.stdout[-2000:],
                 stderr_tail=proc.stderr[-2000:],
                 error=None if proc.returncode == 0 else ControlPlaneError(code="hack_audit_failed", message=f"hack audit exited {proc.returncode}"),
@@ -125,42 +115,11 @@ class HackGateway:
         )
         return sample
 
-    def _parse_output(self, output: Path) -> dict[str, Any]:
-        if not output.exists():
+    def _read_receipt(self, path: Path) -> dict[str, Any]:
+        if not path.exists():
             return {}
         try:
-            return json.loads(output.read_text())
+            data = json.loads(path.read_text())
         except json.JSONDecodeError:
             return {}
-
-    def _store_audit(
-        self,
-        req: HackAuditRequest,
-        status: str,
-        finding_count: int,
-        high_count: int,
-        cwes: list[str],
-        argv: list[str],
-        text: str,
-    ) -> str | None:
-        if not req.persist_to_memory or self.memory is None:
-            return None
-        digest = hashlib.sha256(text.encode()).hexdigest()[:16]
-        key = f"hack-audit-{req.target_kind}-{req.tool}-{digest}"
-        doc = {
-            "_key": key,
-            "schema": "openai_interview.hack_audit_receipt.v1",
-            "kind": "openai_interview_hack_audit_receipt",
-            "status": status,
-            "target_kind": req.target_kind,
-            "tool": req.tool,
-            "finding_count": finding_count,
-            "high_count": high_count,
-            "cwes": cwes,
-            "command": argv,
-            "classification": req.classification,
-            "tags": ["openai-interview", "hack", "cyber-safety"],
-            "retrieval_text": f"Hack audit {req.target_kind} {req.tool} found {finding_count} findings {', '.join(cwes)}",
-            "stdout_excerpt": text[:4000],
-        }
-        return self.memory.store(req.memory_collection, doc)
+        return data if isinstance(data, dict) else {}
