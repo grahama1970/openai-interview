@@ -47,6 +47,8 @@ assert "swagger.playground-banner" in docs_html
 assert "#/Interview%20Playground/sample_task_v1_playground_sample_task_post" in docs_html
 assert "swagger.operation.playground-sample-task" in docs_html
 assert "data-lucide=\"waypoints\"" in docs_html
+assert "agent-sync-button" in docs_html
+assert "/v1/meta/debugger/open" in docs_html
 assert "swagger.operation.eval-test-all" in docs_html
 
 ops = {
@@ -62,6 +64,7 @@ expected = {
     ("POST", "/v1/hack/verify"): "Defensive SAST & Audit",
     ("POST", "/v1/hack/audit"): "Defensive SAST & Audit",
     ("GET", "/v1/meta/memory-recall-flow.svg"): "Interview Visuals",
+    ("POST", "/v1/meta/debugger/open"): "Interview Visuals",
     ("POST", "/v1/playground/sample-task"): "Interview Playground",
     ("GET", "/v1/playground/tasks/{task_id}"): "Interview Playground",
 }
@@ -87,6 +90,10 @@ playground_operation = ops[("POST", "/v1/playground/sample-task")]
 assert "data-lucide=\"sparkles\"" in playground_operation["description"]
 assert playground_operation["operationId"] == "sample_task_v1_playground_sample_task_post"
 assert playground_operation["x-code-location"]["file"] == "src/openai_interview/routes/playground.py"
+
+debugger_operation = ops[("POST", "/v1/meta/debugger/open")]
+assert "mouse-pointer-click" in debugger_operation["description"]
+assert debugger_operation["security"] == [{"APIKeyHeader": []}]
 
 svg_operation = ops[("GET", "/v1/meta/memory-recall-flow.svg")]
 assert "data-lucide=\"image\"" in svg_operation["description"]

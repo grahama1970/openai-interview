@@ -63,6 +63,8 @@ def test_swagger_docs_are_agent_operable() -> None:
     assert 'swagger.operation.playground-sample-task' in docs.text
     assert 'appendSourceSyncPanel' in docs.text
     assert 'data-lucide="waypoints"' in docs.text
+    assert 'agent-sync-button' in docs.text
+    assert '/v1/meta/debugger/open' in docs.text
     assert '.debugger-handler' in docs.text
     assert '.debugger-artifact' in docs.text
     assert 'swagger.operation.eval-test-all' in docs.text
@@ -90,12 +92,46 @@ def test_swagger_docs_are_agent_operable() -> None:
     assert svg_operation['externalDocs']['url'] == artifact['github_url']
 
     assert '#/Interview%20Playground/sample_task_v1_playground_sample_task_post' in openapi['info']['description']
+    debugger_operation = openapi['paths']['/v1/meta/debugger/open']['post']
+    assert debugger_operation['tags'] == ['Interview Visuals']
+    assert 'mouse-pointer-click' in debugger_operation['description']
+    assert debugger_operation['security'] == [{'APIKeyHeader': []}]
+
     playground_operation = openapi['paths']['/v1/playground/sample-task']['post']
     assert playground_operation['operationId'] == 'sample_task_v1_playground_sample_task_post'
     assert playground_operation['tags'] == ['Interview Playground']
     assert 'data-lucide="sparkles"' in playground_operation['description']
     assert playground_operation['x-code-location']['file'] == 'src/openai_interview/routes/playground.py'
     assert playground_operation['security'] == [{'APIKeyHeader': []}]
+
+
+def test_debugger_open_accepts_only_openapi_commands(monkeypatch) -> None:
+    from openai_interview import main as main_module
+
+    class Completed:
+        returncode = 0
+        stdout = 'SELECTED sample_task'
+        stderr = ''
+
+    monkeypatch.setattr(main_module.subprocess, 'run', lambda *args, **kwargs: Completed())
+    client = TestClient(main_module.create_app())
+    openapi = client.get('/openapi.json').json()
+    command = openapi['paths']['/v1/playground/sample-task']['post']['x-code-location']['debugger_open_command']
+    ok = client.post('/v1/meta/debugger/open', headers={'x-api-key': 'dev-key'}, json={
+        'debugger_open_command': command,
+        'classification': 'internal',
+    })
+    assert ok.status_code == 200
+    assert ok.json()['status'] == 'pass'
+    assert ok.json()['stdout_tail'] == 'SELECTED sample_task'
+
+    bad = client.post('/v1/meta/debugger/open', headers={'x-api-key': 'dev-key'}, json={
+        'debugger_open_command': 'rm -rf /',
+        'classification': 'internal',
+    })
+    assert bad.status_code == 200
+    assert bad.json()['status'] == 'fail'
+    assert bad.json()['error']['code'] == 'debugger_command_not_allowlisted'
 
 
 def test_playground_sample_task_round_trip() -> None:

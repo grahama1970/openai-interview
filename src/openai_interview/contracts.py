@@ -152,6 +152,31 @@ class EvalBatchResult(BaseModel):
     classification: Classification = "internal"
 
 
+class DebuggerOpenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    debugger_open_command: str = Field(
+        min_length=1,
+        description="Exact command from OpenAPI x-code-location or x-artifact-location.",
+    )
+    classification: Classification = "internal"
+
+
+class DebuggerOpenResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    schema_: Literal["openai_interview.debugger_open.v1"] = Field(
+        default="openai_interview.debugger_open.v1",
+        alias="schema",
+    )
+    status: Literal["pass", "fail"]
+    command: list[str]
+    stdout_tail: str = ""
+    stderr_tail: str = ""
+    error: ControlPlaneError | None = None
+    classification: Classification = "internal"
+
+
 class HackVerifyRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",

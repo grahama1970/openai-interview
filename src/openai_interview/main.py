@@ -3,12 +3,16 @@ from __future__ import annotations
 
 from importlib.resources import files
 from pathlib import Path
+import shlex
+import subprocess
 
 from fastapi import Body, Depends, FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, Response
 
 from .contracts import (
+    DebuggerOpenRequest,
+    DebuggerOpenResult,
     EvalBatchRequest,
     EvalBatchResult,
     EvalItemResult,
@@ -17,6 +21,7 @@ from .contracts import (
     HackVerifyRequest,
     HackVerifyResult,
     Health,
+    ControlPlaneError,
     MemoryRecallRequest,
     MemoryRecallResult,
 )
@@ -80,6 +85,7 @@ DOCS_AGENT_SCRIPT = r"""
     'POST /v1/hack/verify': 'swagger.operation.hack-verify',
     'POST /v1/hack/audit': 'swagger.operation.hack-audit',
     'GET /v1/meta/memory-recall-flow.svg': 'swagger.operation.memory-recall-flow-svg',
+    'POST /v1/meta/debugger/open': 'swagger.operation.debugger-open',
     'POST /v1/playground/sample-task': 'swagger.operation.playground-sample-task',
     'GET /v1/playground/tasks/{task_id}': 'swagger.operation.playground-read-task',
   };
@@ -120,6 +126,26 @@ DOCS_AGENT_SCRIPT = r"""
     return displayable && key.startsWith('GET ') ? key.slice(4) : null;
   }
 
+  async function openDebugger(command, statusNode) {
+    const savedKey = localStorage.getItem('openai-interview-api-key') || '';
+    const apiKey = savedKey || prompt('x-api-key for local debugger sync', 'dev-key') || '';
+    if (!apiKey) return;
+    localStorage.setItem('openai-interview-api-key', apiKey);
+    statusNode.textContent = 'syncing...';
+    const res = await fetch('/v1/meta/debugger/open', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': apiKey },
+      body: JSON.stringify({ debugger_open_command: command, classification: 'internal' }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 401) localStorage.removeItem('openai-interview-api-key');
+    statusNode.textContent = res.ok ? 'VS Code selected' : (body?.error?.message || body?.detail || 'sync failed');
+  }
+
+  function syncButton(qid, target, command) {
+    return `<button type="button" class="agent-sync-button" data-sync-command="${command}" data-sync-target="${target}" data-qid="${qid}.sync-${target}" style="margin-left:8px;padding:3px 8px;border:1px solid #94a3b8;border-radius:5px;background:white;cursor:pointer"><i data-lucide="mouse-pointer-click"></i> Sync ${target} to VS Code</button>`;
+  }
+
   function appendSourceSyncPanel(block, key, qid) {
     const operation = operationsByKey[key];
     if (!operation || block.querySelector(':scope > [data-qid$=".source-sync"]')) return;
@@ -133,10 +159,14 @@ DOCS_AGENT_SCRIPT = r"""
     panel.setAttribute('data-qid', `${qid}.source-sync`);
     panel.style.cssText = 'margin:10px 20px;padding:12px;border:1px solid #d8dde7;border-radius:6px;background:#f7fbff;font-size:13px;line-height:1.45';
     const rows = ['<strong><i data-lucide="waypoints"></i> Agent source sync</strong>'];
-    if (handler) rows.push(`<i data-lucide="code-2"></i> Handler: <a data-qid="${qid}.source-handler" href="${handler.github_url}" target="_blank" rel="noreferrer">${handler.file}:${handler.line}</a><br><i data-lucide="terminal"></i> <code data-qid="${qid}.debugger-handler">${handler.debugger_open_command}</code>`);
-    if (artifact) rows.push(`<i data-lucide="file-code-2"></i> Artifact: <a data-qid="${qid}.source-artifact" href="${artifact.github_url}" target="_blank" rel="noreferrer">${artifact.file}:${artifact.line}</a><br><i data-lucide="terminal"></i> <code data-qid="${qid}.debugger-artifact">${artifact.debugger_open_command}</code>`);
+    if (handler) rows.push(`<i data-lucide="code-2"></i> Handler: <a data-qid="${qid}.source-handler" href="${handler.github_url}" target="_blank" rel="noreferrer">${handler.file}:${handler.line}</a>${syncButton(qid, 'handler', handler.debugger_open_command)}<br><i data-lucide="terminal"></i> <code data-qid="${qid}.debugger-handler">${handler.debugger_open_command}</code>`);
+    if (artifact) rows.push(`<i data-lucide="file-code-2"></i> Artifact: <a data-qid="${qid}.source-artifact" href="${artifact.github_url}" target="_blank" rel="noreferrer">${artifact.file}:${artifact.line}</a>${syncButton(qid, 'artifact', artifact.debugger_open_command)}<br><i data-lucide="terminal"></i> <code data-qid="${qid}.debugger-artifact">${artifact.debugger_open_command}</code>`);
     if (response) rows.push(`<i data-lucide="chart-no-axes-combined"></i> Show: <a data-qid="${qid}.open-response" href="${response}" target="_blank" rel="noreferrer">open response</a>`);
+    rows.push(`<span data-qid="${qid}.sync-status" style="color:#475569"></span>`);
     panel.innerHTML = rows.join('<div style="height:6px"></div>');
+    for (const button of panel.querySelectorAll('.agent-sync-button')) {
+      button.addEventListener('click', () => openDebugger(button.dataset.syncCommand, panel.querySelector(`[data-qid="${qid}.sync-status"]`)));
+    }
     block.querySelector('.opblock-summary')?.after(panel);
     window.lucide?.createIcons();
   }
@@ -286,6 +316,18 @@ def openapi_routes(app: FastAPI) -> list:
     return routes
 
 
+def allowed_debugger_commands(schema: dict) -> set[str]:
+    """Return debugger commands that Swagger is allowed to run locally."""
+    commands: set[str] = set()
+    for methods in schema.get("paths", {}).values():
+        for operation in methods.values():
+            for key in ("x-code-location", "x-artifact-location"):
+                command = (operation.get(key) or {}).get("debugger_open_command")
+                if command:
+                    commands.add(command)
+    return commands
+
+
 def add_code_locations_to_openapi(app: FastAPI) -> None:
     """Expose source links plus debugger hints in `/openapi.json`."""
     default_openapi = app.openapi
@@ -343,6 +385,60 @@ def create_app() -> FastAPI:
         )
         html = response.body.decode("utf-8").replace("</body>", f"{DOCS_AGENT_SCRIPT}</body>")
         return HTMLResponse(html)
+
+    @app.post(
+        "/v1/meta/debugger/open",
+        response_model=DebuggerOpenResult,
+        dependencies=[Depends(require_api_key)],
+        tags=["Interview Visuals"],
+        summary="Sync Swagger endpoint to VS Code",
+        description="""
+<i data-lucide="mouse-pointer-click"></i> **Open the selected endpoint in VS Code**
+
+Runs only debugger commands already published by this service's own OpenAPI
+`x-code-location` or `x-artifact-location` metadata.
+""",
+    )
+    def debugger_open(
+        req: DebuggerOpenRequest = Body(
+            ...,
+            openapi_examples={
+                "playground_handler": {
+                    "summary": "Open playground handler in VS Code",
+                    "description": "Runs the exact command published by x-code-location for the playground route.",
+                    "value": {
+                        "debugger_open_command": "skills/debugger/run.sh open src/openai_interview/routes/playground.py --function sample_task --bridge",
+                        "classification": "internal",
+                    },
+                }
+            },
+        ),
+    ) -> DebuggerOpenResult:
+        """Run an allowlisted `$debugger open` command for the Swagger sync button."""
+        allowed = allowed_debugger_commands(app.openapi())
+        if req.debugger_open_command not in allowed:
+            return DebuggerOpenResult(
+                status="fail",
+                command=[],
+                error=ControlPlaneError(code="debugger_command_not_allowlisted", message="debugger command is not published by OpenAPI metadata"),
+            )
+        command = shlex.split(req.debugger_open_command)
+        try:
+            result = subprocess.run(command, cwd=PROJECT_ROOT, check=False, capture_output=True, text=True, timeout=20)
+        except Exception as exc:
+            return DebuggerOpenResult(
+                status="fail",
+                command=command,
+                error=ControlPlaneError(code="debugger_open_failed", message=str(exc)),
+            )
+        status_value = "pass" if result.returncode == 0 else "fail"
+        return DebuggerOpenResult(
+            status=status_value,
+            command=command,
+            stdout_tail=result.stdout[-1000:],
+            stderr_tail=result.stderr[-1000:],
+            error=None if result.returncode == 0 else ControlPlaneError(code="debugger_open_failed", message=f"exit {result.returncode}"),
+        )
 
     @app.get(
         "/v1/meta/memory-recall-flow.svg",
