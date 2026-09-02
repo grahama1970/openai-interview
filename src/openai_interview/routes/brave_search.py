@@ -6,16 +6,11 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
 from openai_interview.contracts import ObscureStarWarsCharacter, ObscureStarWarsCharactersResult
-from openai_interview.security import require_api_key
 
-router = APIRouter(
-    prefix="/v1/brave-search",
-    tags=["Brave Search"],
-    dependencies=[Depends(require_api_key)],
-)
+router = APIRouter(prefix="/v1/brave-search", tags=["Brave Search"])
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 BRAVE_SEARCH = PROJECT_ROOT / "skills" / "brave-search" / "run.sh"

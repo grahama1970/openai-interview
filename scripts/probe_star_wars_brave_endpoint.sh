@@ -19,7 +19,7 @@ for _ in $(seq 1 120); do
   curl -fsS "http://127.0.0.1:$PORT/health/live" >/tmp/openai_star_wars_health.json 2>/dev/null && break
   sleep 0.25
 done
-curl -fsS -H 'x-api-key: dev-key' "http://127.0.0.1:$PORT/v1/brave-search/star-wars/obscure-characters" > /tmp/openai_star_wars_response.json
+curl -fsS "http://127.0.0.1:$PORT/v1/brave-search/star-wars/obscure-characters" > /tmp/openai_star_wars_response.json
 uv run --extra dev python - <<'PY'
 import json
 from pathlib import Path

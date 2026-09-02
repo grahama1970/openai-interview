@@ -101,6 +101,7 @@ def test_swagger_docs_are_agent_operable() -> None:
     assert brave_operation['tags'] == ['Brave Search']
     assert brave_operation['x-code-location']['file'] == 'src/openai_interview/routes/brave_search.py'
     assert 'data-lucide="search"' in brave_operation['description']
+    assert 'security' not in brave_operation
 
     playground_operation = openapi['paths']['/v1/playground/sample-task']['post']
     assert playground_operation['operationId'] == 'sample_task_v1_playground_sample_task_post'
@@ -120,7 +121,7 @@ def test_brave_star_wars_endpoint(monkeypatch) -> None:
 
     monkeypatch.setattr(brave_module, 'run_brave_search', lambda: {'results': [{'title': 'source'}]})
     client = TestClient(create_app())
-    response = client.get('/v1/brave-search/star-wars/obscure-characters', headers={'x-api-key': 'dev-key'})
+    response = client.get('/v1/brave-search/star-wars/obscure-characters')
     assert response.status_code == 200
     body = response.json()
     assert body['schema'] == 'openai_interview.star_wars_obscure_characters.v1'
