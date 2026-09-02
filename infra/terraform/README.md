@@ -15,10 +15,14 @@ HashiCorp module structure.
 
 ## Workflow
 
+This module is a deployment handoff, not an apply script. Use it to prove the
+service has typed deployment inputs/outputs after the Docker check passes.
+
 ```bash
 terraform init
 terraform fmt -recursive
 terraform validate
 terraform plan -var-file=envs/dev.tfvars -out=dev.tfplan
-terraform apply dev.tfplan
 ```
+
+Do not run `terraform apply` without an explicit human deployment decision.

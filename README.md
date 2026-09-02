@@ -23,7 +23,9 @@ The FastAPI/React code is the demo surface for that skill chain. It is not the p
 - `hack.py`: bounded `$hack verify` plus `$hack audit` integration. The audit route is disabled unless `OPENAI_INTERVIEW_ENABLE_HACK_AUDIT=true` and only accepts `self` or `demo_vulnerable_python` targets.
 - `main.py`: FastAPI adapter.
 - `web/`: React/Vite operator surface with `data-qid` checks.
+- `Dockerfile` / `docker-compose.yml`: container handoff that runs as `appuser`, exposes health, and disables Hack powers by default.
 - `infra/terraform/`: skill-scaffolded deployment handoff, checked by `$ops-terraform`.
+- `docs/INTERVIEW_PLAYBOOK.md`: five-minute interview narrative centered on Graham's skill chain.
 
 No PostgreSQL is used. Durable state goes through `$memory` endpoints.
 
@@ -34,6 +36,7 @@ cp .env.example .env
 uv run --extra dev pytest
 scripts/dev.sh      # FastAPI hot reload on 127.0.0.1:8080
 scripts/dev-all.sh  # FastAPI hot reload + Vite React hot reload
+scripts/docker_check.sh  # Docker build + container health proof
 ```
 
 ## Skill links
@@ -43,6 +46,7 @@ scripts/dev-all.sh  # FastAPI hot reload + Vite React hot reload
 ## Terraform handoff
 
 ```bash
+scripts/docker_check.sh
 scripts/terraform_check.sh
 scripts/terraform_plan.sh  # prints the plan-only handoff; it never applies
 scripts/probe_hack_audit_endpoint.sh  # proves FastAPI -> $hack audit -> $memory readback

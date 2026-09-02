@@ -9,6 +9,14 @@
   },
   "capability_claims": [
     {
+      "id": "openai_interview.interview_playbook",
+      "description": "The repo includes a concise interview playbook that explains the skill-chain thesis, walkthrough, Fable boundary, and non-claims.",
+      "criticality": "critical",
+      "evidence_required": {
+        "deterministic": true
+      }
+    },
+    {
       "id": "openai_interview.skill_chain",
       "description": "The artifact foregrounds Graham\u2019s skill-composition workflow rather than hand-coded application output as the primary interview claim.",
       "criticality": "critical",
@@ -50,6 +58,14 @@
       }
     },
     {
+      "id": "openai_interview.docker_runtime",
+      "description": "The FastAPI service builds into a Docker image, runs as a non-root user, and answers the live health endpoint from a container.",
+      "criticality": "critical",
+      "evidence_required": {
+        "live_e2e": true
+      }
+    },
+    {
       "id": "openai_interview.terraform_handoff",
       "description": "Terraform is present only as a check/plan handoff and validates without apply.",
       "criticality": "critical",
@@ -68,6 +84,24 @@
     }
   ],
   "seams": [
+    {
+      "seam_id": "docs.interview_playbook",
+      "seam_type": "pure deterministic transform",
+      "criticality": "critical",
+      "claim_id": "openai_interview.interview_playbook",
+      "required_evidence": [
+        "deterministic"
+      ]
+    },
+    {
+      "seam_id": "docker.container_health",
+      "seam_type": "filesystem/process",
+      "criticality": "critical",
+      "claim_id": "openai_interview.docker_runtime",
+      "required_evidence": [
+        "live_e2e"
+      ]
+    },
     {
       "seam_id": "skill_chain.no_fable_dependency",
       "seam_type": "pure deterministic transform",
@@ -170,6 +204,30 @@
   ],
   "cases": [
     {
+      "name": "interview-playbook-present",
+      "type": "positive",
+      "evidence_class": "deterministic",
+      "real_world": true,
+      "supports_claims": [
+        "openai_interview.interview_playbook",
+        "openai_interview.skill_chain",
+        "openai_interview.no_fable_dependency"
+      ],
+      "seams": [
+        "docs.interview_playbook",
+        "skill_chain.no_fable_dependency"
+      ],
+      "command": [
+        "bash",
+        "-c",
+        "grep -Fq 'Graham uses skills as an evidence operating system' ../docs/INTERVIEW_PLAYBOOK.md && grep -Fq 'Fable' ../docs/INTERVIEW_PLAYBOOK.md && grep -Fq 'does not prove OpenAI/Astra internals' ../docs/INTERVIEW_PLAYBOOK.md"
+      ],
+      "expected": {
+        "exit_code": 0
+      },
+      "timeout_seconds": 30
+    },
+    {
       "name": "skill-chain-no-fable-dependency",
       "type": "adversarial",
       "evidence_class": "deterministic",
@@ -196,6 +254,44 @@
       "timeout_seconds": 60
     },
     {
+      "name": "docker-build-health-nonroot",
+      "type": "positive",
+      "evidence_class": "live_e2e",
+      "real_world": true,
+      "readback": true,
+      "supports_claims": [
+        "openai_interview.docker_runtime"
+      ],
+      "seams": [
+        "docker.container_health"
+      ],
+      "command": [
+        "bash",
+        "../scripts/docker_check.sh"
+      ],
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "openai_interview.probe.docker.v1",
+          "PASS",
+          "appuser"
+        ],
+        "artifacts": [
+          {
+            "path": "../receipts/agentic/docker-check.json",
+            "json_pointer": "/status",
+            "equals": "PASS"
+          },
+          {
+            "path": "../receipts/agentic/docker-check.json",
+            "json_pointer": "/container_user",
+            "equals": "appuser"
+          }
+        ]
+      },
+      "timeout_seconds": 300
+    },
+    {
       "name": "verify-script",
       "type": "positive",
       "evidence_class": "deterministic",
@@ -205,13 +301,17 @@
         "openai_interview.contracts",
         "openai_interview.memory_native",
         "openai_interview.terraform_handoff",
-        "openai_interview.ui_and_dev_loop"
+        "openai_interview.ui_and_dev_loop",
+        "openai_interview.docker_runtime",
+        "openai_interview.interview_playbook"
       ],
       "seams": [
         "skill_chain.required_skills_present",
         "contracts.pydantic_validation",
         "terraform.check_handoff",
-        "ui.data_qid"
+        "ui.data_qid",
+        "docker.container_health",
+        "docs.interview_playbook"
       ],
       "command": [
         "bash",
