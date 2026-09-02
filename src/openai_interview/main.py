@@ -43,7 +43,7 @@ operations without guessing OpenAI's internal priorities.
 2. **Run `POST /v1/eval/test-all`** for a zero-body readiness check.
 3. **Open `POST /v1/memory/recall`** to inspect source-grounded OpenAI/privacy recall.
 4. **Open `POST /v1/hack/audit`** to inspect bounded SAST receipt output.
-5. **Open `POST /v1/playground/sample-task`** when the interview shifts into live endpoint design.
+5. **Open [POST /v1/playground/sample-task](#/Interview%20Playground/sample_task_v1_playground_sample_task_post)** when the interview shifts into live endpoint design.
 
 ---
 
@@ -97,7 +97,7 @@ DOCS_AGENT_SCRIPT = r"""
     const banner = document.createElement('div');
     banner.setAttribute('data-qid', 'swagger.playground-banner');
     banner.style.cssText = 'margin:12px 0;padding:12px 14px;border:2px solid #8b5cf6;border-radius:8px;background:#faf5ff;font-size:14px;line-height:1.45';
-    banner.innerHTML = '<strong><i data-lucide="sparkles"></i> Interview Playground</strong><br><a data-qid="swagger.open-playground" href="#/Interview%20Playground">Open /v1/playground/sample-task</a> to copy-paste a route template, run live JSON requests, and reshape endpoints as the interview flows.';
+    banner.innerHTML = '<strong><i data-lucide="sparkles"></i> Interview Playground</strong><br><a data-qid="swagger.open-playground" href="#/Interview%20Playground/sample_task_v1_playground_sample_task_post">Open /v1/playground/sample-task</a> to copy-paste a route template, run live JSON requests, and reshape endpoints as the interview flows.';
     info.appendChild(banner);
     window.lucide?.createIcons();
   }

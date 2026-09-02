@@ -59,6 +59,7 @@ def test_swagger_docs_are_agent_operable() -> None:
     assert 'window.lucide?.createIcons()' in docs.text
     assert 'data-qid' in docs.text
     assert 'swagger.playground-banner' in docs.text
+    assert '#/Interview%20Playground/sample_task_v1_playground_sample_task_post' in docs.text
     assert 'swagger.operation.playground-sample-task' in docs.text
     assert 'appendSourceSyncPanel' in docs.text
     assert 'data-lucide="waypoints"' in docs.text
@@ -88,7 +89,9 @@ def test_swagger_docs_are_agent_operable() -> None:
     assert artifact['debugger_open_command'] == 'skills/debugger/run.sh open docs/visuals/memory_recall_flow.svg --line 1 --bridge'
     assert svg_operation['externalDocs']['url'] == artifact['github_url']
 
+    assert '#/Interview%20Playground/sample_task_v1_playground_sample_task_post' in openapi['info']['description']
     playground_operation = openapi['paths']['/v1/playground/sample-task']['post']
+    assert playground_operation['operationId'] == 'sample_task_v1_playground_sample_task_post'
     assert playground_operation['tags'] == ['Interview Playground']
     assert 'data-lucide="sparkles"' in playground_operation['description']
     assert playground_operation['x-code-location']['file'] == 'src/openai_interview/routes/playground.py'

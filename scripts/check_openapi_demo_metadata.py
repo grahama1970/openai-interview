@@ -15,6 +15,7 @@ for text in (
     "OpenAI-relevant safety control-plane demo",
     "30-second interview quickstart",
     "POST /v1/eval/test-all",
+    "#/Interview%20Playground/sample_task_v1_playground_sample_task_post",
     "x-api-key: dev-key",
     "$curate-client",
     "$setup-project",
@@ -43,6 +44,7 @@ assert "https://unpkg.com/lucide@latest" in docs_html
 assert "window.lucide?.createIcons()" in docs_html
 assert "data-qid" in docs_html
 assert "swagger.playground-banner" in docs_html
+assert "#/Interview%20Playground/sample_task_v1_playground_sample_task_post" in docs_html
 assert "swagger.operation.playground-sample-task" in docs_html
 assert "data-lucide=\"waypoints\"" in docs_html
 assert "swagger.operation.eval-test-all" in docs_html
@@ -83,6 +85,7 @@ assert "skills/debugger/run.sh open src/openai_interview/main.py --function eval
 
 playground_operation = ops[("POST", "/v1/playground/sample-task")]
 assert "data-lucide=\"sparkles\"" in playground_operation["description"]
+assert playground_operation["operationId"] == "sample_task_v1_playground_sample_task_post"
 assert playground_operation["x-code-location"]["file"] == "src/openai_interview/routes/playground.py"
 
 svg_operation = ops[("GET", "/v1/meta/memory-recall-flow.svg")]
