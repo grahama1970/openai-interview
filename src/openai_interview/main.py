@@ -79,6 +79,40 @@ DOCS_AGENT_SCRIPT = r"""
     return (node?.textContent || '').replace(/\s+/g, ' ').trim();
   }
 
+  let operationsByKey = {};
+
+  function operationKey(block) {
+    const method = text(block.querySelector('.opblock-summary-method'));
+    const path = text(block.querySelector('.opblock-summary-path')).replace(/\s+/g, '');
+    return `${method} ${path}`;
+  }
+
+  function visualHref(operation, key) {
+    const content = operation?.responses?.['200']?.content || {};
+    const isVisual = content['image/svg+xml'] || content['image/png'];
+    return isVisual && key.startsWith('GET ') ? key.slice(4) : null;
+  }
+
+  function appendSourceSyncPanel(block, key, qid) {
+    const operation = operationsByKey[key];
+    if (!operation || block.querySelector(':scope > [data-qid$=".source-sync"]')) return;
+    const handler = operation['x-code-location'];
+    const artifact = operation['x-artifact-location'];
+    const visual = visualHref(operation, key);
+    if (!handler && !artifact && !visual) return;
+
+    const panel = document.createElement('div');
+    panel.className = 'agent-source-sync';
+    panel.setAttribute('data-qid', `${qid}.source-sync`);
+    panel.style.cssText = 'margin:10px 20px;padding:12px;border:1px solid #d8dde7;border-radius:6px;background:#f7fbff;font-size:13px;line-height:1.45';
+    const rows = ['<strong>Agent source sync</strong>'];
+    if (handler) rows.push(`Handler: <a data-qid="${qid}.source-handler" href="${handler.github_url}" target="_blank" rel="noreferrer">${handler.file}:${handler.line}</a><br><code data-qid="${qid}.debugger-handler">${handler.debugger_open_command}</code>`);
+    if (artifact) rows.push(`Artifact: <a data-qid="${qid}.source-artifact" href="${artifact.github_url}" target="_blank" rel="noreferrer">${artifact.file}:${artifact.line}</a><br><code data-qid="${qid}.debugger-artifact">${artifact.debugger_open_command}</code>`);
+    if (visual) rows.push(`Visual: <a data-qid="${qid}.open-visual" href="${visual}" target="_blank" rel="noreferrer">open response</a>`);
+    panel.innerHTML = rows.join('<div style="height:6px"></div>');
+    block.querySelector('.opblock-summary')?.after(panel);
+  }
+
   function annotateForAgents() {
     document.querySelector('a[href="/openapi.json"]')?.setAttribute('data-qid', 'swagger.openapi-json');
     for (const button of document.querySelectorAll('button')) {
@@ -95,12 +129,12 @@ DOCS_AGENT_SCRIPT = r"""
     document.querySelector('.dialog-ux .btn-done')?.setAttribute('data-qid', 'swagger.modal.close');
 
     for (const block of document.querySelectorAll('.opblock')) {
-      const method = text(block.querySelector('.opblock-summary-method'));
-      const path = text(block.querySelector('.opblock-summary-path')).replace(/\s+/g, '');
-      const qid = routeQids[`${method} ${path}`];
+      const key = operationKey(block);
+      const qid = routeQids[key];
       if (!qid) continue;
       block.setAttribute('data-qid', qid);
       block.querySelector('.opblock-summary')?.setAttribute('data-qid', `${qid}.summary`);
+      appendSourceSyncPanel(block, key, qid);
       for (const button of block.querySelectorAll('button')) {
         const label = text(button).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         if (label) button.setAttribute('data-qid', `${qid}.${label}`);
@@ -114,6 +148,13 @@ DOCS_AGENT_SCRIPT = r"""
       const res = await fetch('/openapi.json?reload=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) return;
       const current = await res.text();
+      const parsed = JSON.parse(current);
+      operationsByKey = {};
+      for (const [path, methods] of Object.entries(parsed.paths || {})) {
+        for (const [method, operation] of Object.entries(methods || {})) {
+          operationsByKey[`${method.toUpperCase()} ${path}`] = operation;
+        }
+      }
       if (last === null) {
         last = current;
       } else if (current !== last) {

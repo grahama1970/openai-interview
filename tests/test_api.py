@@ -56,6 +56,9 @@ def test_swagger_docs_are_agent_operable() -> None:
     assert '/openapi.json?reload=' in docs.text
     assert 'location.reload()' in docs.text
     assert 'data-qid' in docs.text
+    assert 'appendSourceSyncPanel' in docs.text
+    assert '.debugger-handler' in docs.text
+    assert '.debugger-artifact' in docs.text
     assert 'swagger.operation.eval-test-all' in docs.text
     assert 'swagger.operation.memory-recall-flow-svg' in docs.text
 
