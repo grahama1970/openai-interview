@@ -1,10 +1,21 @@
 # OpenAI Interview Control Plane
 
-Memory-native FastAPI interview artifact for an Astra-style cyber-safety eval control plane.
+Memory-native skills demo for an Astra-style cyber-safety eval control plane.
 
-This is not OpenAI software and does not claim access to Astra internals. It shows Graham's method: typed Python contracts, Memory-backed evidence, bounded Hack gates, and retained eval proof.
+This is not OpenAI software and does not claim access to Astra internals. It shows how Graham works by composing skills: `$brave-search` grounds the public Astra context, `$memory` recalls and persists evidence, `$hack` runs bounded defensive scans, `$agentic-evals` proves seams repeatedly, and `$terraform`/`$ops-terraform` provide a plan-only deployment handoff.
 
-## Shape
+The FastAPI/React code is the demo surface for that skill chain. It is not the point by itself.
+
+## Skill chain
+
+1. `$brave-search` grounds the OpenAI/Astra public context.
+2. `$best-practices-fastapi` shapes framework-neutral Pydantic contracts and adapter boundaries.
+3. `$memory` handles recall and durable evidence storage; ArangoDB/Qdrant stay behind Memory.
+4. `$hack` runs authorized, containerized SAST and emits typed audit receipts.
+5. `$agentic-evals` repeats the proof cases and checks claim/seam coverage.
+6. `$terraform` and `$ops-terraform` keep deployment as a checked handoff, not an unproven apply.
+
+## Demo surface
 
 - `contracts.py`: Pydantic request/response/receipt models.
 - `service.py`: framework-neutral logic.

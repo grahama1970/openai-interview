@@ -2,12 +2,28 @@
   "version": 2,
   "skill": "openai-interview-control-plane",
   "trials": 3,
-  "proof_scope": "Claim-based and seam-based checks for the Memory-native FastAPI control plane, live Memory recall/persistence, bounded Hack SAST scan, Terraform handoff, React qid surface, and hot-reload dev loop.",
+  "proof_scope": "Claim-based and seam-based checks for Graham\u2019s OpenAI interview skill chain: public Astra context grounding, Memory-native recall/persistence, bounded Hack SAST receipts, Terraform handoff, React qid surface, and hot-reload demo loop.",
   "claims": {
-    "proves": "the declared OpenAI interview control-plane seams have repeated deterministic or live guards, including a live Hack SAST scan that detects CWE-78 and persists the scan receipt to Memory",
-    "does_not_prove": "OpenAI/Astra internals, Azure deployment, full live Hack session-audit/scanning, Terraform apply, or production readiness"
+    "proves": "Graham can compose skills into a working OpenAI-relevant evidence loop: Memory recall/store, Hack SAST receipt generation, repeated agentic eval proof, Terraform handoff checks, and a small FastAPI/React surface that exposes the workflow.",
+    "does_not_prove": "OpenAI/Astra internals, Azure deployment, full live Hack session-audit/scanning, Terraform apply, production readiness, or hand-coding performance as the primary claim."
   },
   "capability_claims": [
+    {
+      "id": "openai_interview.skill_chain",
+      "description": "The artifact foregrounds Graham\u2019s skill-composition workflow rather than hand-coded application output as the primary interview claim.",
+      "criticality": "critical",
+      "evidence_required": {
+        "deterministic": true
+      }
+    },
+    {
+      "id": "openai_interview.no_fable_dependency",
+      "description": "The OpenAI interview proof chain does not depend on Fable, claude-fable handlers, or any browser oracle as a required reviewer; it is proven by local skills and receipts.",
+      "criticality": "critical",
+      "evidence_required": {
+        "deterministic": true
+      }
+    },
     {
       "id": "openai_interview.contracts",
       "description": "Pydantic contracts, auth gate, and Memory-first batch shape validate through project tests.",
@@ -52,6 +68,24 @@
     }
   ],
   "seams": [
+    {
+      "seam_id": "skill_chain.no_fable_dependency",
+      "seam_type": "pure deterministic transform",
+      "criticality": "critical",
+      "claim_id": "openai_interview.no_fable_dependency",
+      "required_evidence": [
+        "deterministic"
+      ]
+    },
+    {
+      "seam_id": "skill_chain.required_skills_present",
+      "seam_type": "filesystem/process",
+      "criticality": "critical",
+      "claim_id": "openai_interview.skill_chain",
+      "required_evidence": [
+        "deterministic"
+      ]
+    },
     {
       "seam_id": "contracts.pydantic_validation",
       "seam_type": "pure deterministic transform",
@@ -136,17 +170,45 @@
   ],
   "cases": [
     {
+      "name": "skill-chain-no-fable-dependency",
+      "type": "adversarial",
+      "evidence_class": "deterministic",
+      "real_world": true,
+      "supports_claims": [
+        "openai_interview.skill_chain",
+        "openai_interview.no_fable_dependency"
+      ],
+      "seams": [
+        "skill_chain.no_fable_dependency",
+        "skill_chain.required_skills_present"
+      ],
+      "command": [
+        "bash",
+        "../scripts/probe_skill_chain_no_fable.sh"
+      ],
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "openai_interview.probe.no_fable.v1",
+          "PASS"
+        ]
+      },
+      "timeout_seconds": 60
+    },
+    {
       "name": "verify-script",
       "type": "positive",
       "evidence_class": "deterministic",
       "real_world": true,
       "supports_claims": [
+        "openai_interview.skill_chain",
         "openai_interview.contracts",
         "openai_interview.memory_native",
         "openai_interview.terraform_handoff",
         "openai_interview.ui_and_dev_loop"
       ],
       "seams": [
+        "skill_chain.required_skills_present",
         "contracts.pydantic_validation",
         "terraform.check_handoff",
         "ui.data_qid"
