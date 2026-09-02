@@ -9,6 +9,7 @@ uv run --extra dev pytest --cov=openai_interview --cov-report=json:receipts/cove
 uv run --extra dev python scripts/check_contracts.py
 uv run --extra dev python scripts/check_immutable_goal.py
 uv run --extra dev python scripts/check_python_standards.py
+./skills/setup-project/run.sh audit --config ./skills/setup-project/configs/openai_interview.yaml
 if command -v docker >/dev/null 2>&1; then
   bash scripts/docker_check.sh
 fi
@@ -19,7 +20,7 @@ fi
 python - <<'PY'
 import json
 from pathlib import Path
-receipt = {"schema":"openai_interview.verify.v1","status":"PASS","checks":["compileall","pytest","contracts","immutable-goal","python-standards","docker-check-if-docker","terraform-check","react-data-qid-if-npm"]}
+receipt = {"schema":"openai_interview.verify.v1","status":"PASS","checks":["compileall","pytest","contracts","immutable-goal","python-standards","setup-project-audit","docker-check-if-docker","terraform-check","react-data-qid-if-npm"]}
 Path('receipts/verification.json').write_text(json.dumps(receipt, indent=2))
 print(json.dumps(receipt))
 PY

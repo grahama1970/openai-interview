@@ -25,12 +25,41 @@ The FastAPI/React code is the demo surface for that skill chain. It is not the p
 
 1. `$brave-search` grounds the OpenAI/Astra public context.
 2. `$curate-client` is the prep-pack entry point when official OpenAI pages, interview notes, or recruiter-supplied material need to become reusable, Memory-ready client context. This repo does not vendor that source corpus; it shows where the curated packet enters the chain.
-3. `$best-practices-readme` keeps this README navigable, evidence-aware, and explicit about non-claims.
-4. `$best-practices-fastapi` shapes framework-neutral Pydantic contracts and adapter boundaries.
-5. `$memory` handles recall and durable evidence storage; ArangoDB/Qdrant stay behind Memory.
-6. `$hack` runs authorized, containerized SAST and emits typed audit receipts.
-7. `$agentic-evals` repeats the proof cases and checks claim/seam coverage.
-8. `$terraform` and `$ops-terraform` keep deployment as a checked handoff, not an unproven apply.
+3. `$setup-project` captures the project recipe so the setup can be repeated instead of reconstructed from chat history.
+4. `$best-practices-readme` keeps this README navigable, evidence-aware, and explicit about non-claims.
+5. `$best-practices-fastapi` shapes framework-neutral Pydantic contracts and adapter boundaries.
+6. `$memory` handles recall and durable evidence storage; ArangoDB/Qdrant stay behind Memory.
+7. `$hack` runs authorized, containerized SAST and emits typed audit receipts.
+8. `$agentic-evals` repeats the proof cases and checks claim/seam coverage.
+9. `$terraform` and `$ops-terraform` keep deployment as a checked handoff, not an unproven apply.
+
+## How this project was set up with skills
+
+The setup is meant to be visible to interviewers. The point is not that a small FastAPI app exists; the point is that the repo was assembled as a repeatable skill chain with proof at each seam.
+
+| Setup step | Skill | What it contributed | Where to inspect |
+| --- | --- | --- | --- |
+| Interview/client brief | `$curate-client` | OpenAI/privacy prep-pack path: official/client materials become Q-A chunks, Memory recall probes, and a live-evidence prep pack. | `skills/setup-project/configs/openai_interview.yaml`, `skills/curate-client/configs/openai_privacy_2026_09.yaml` |
+| Project recipe | `$setup-project` | Read-only plan/audit showing the required skills, files, README terms, immutable goal, and curate-client handoff. | `skills/setup-project/run.sh plan --config skills/setup-project/configs/openai_interview.yaml` |
+| README | `$best-practices-readme` | Start-here navigation, skill provenance, proof table, and non-claims. | `README.md` |
+| API shape | `$best-practices-fastapi` | Pydantic contracts, framework-neutral service layer, FastAPI adapter boundary. | `src/openai_interview/` |
+| Persistence | `$memory` | Recall and durable evidence storage through Memory endpoints only. | `src/openai_interview/memory.py` |
+| Defensive scan | `$hack` | Bounded SAST scan and Hack-owned receipt parsing. | `src/openai_interview/hack.py`, `receipts/agentic/hack-audit-endpoint.json` |
+| Runtime handoff | Docker + `$ops-docker` pattern | Non-root, read-only local container with a healthcheck and disabled Hack powers by default. | `Dockerfile`, `docker-compose.yml`, `scripts/docker_check.sh` |
+| Deployment handoff | `$terraform` / `$ops-terraform` | Plan-only Terraform module and backend-free validation. | `infra/terraform/`, `scripts/terraform_check.sh` |
+| Proof | `$agentic-evals` | Repeated claim/seam evals, coverage, and interview readiness receipt. | `fixtures/agentic_eval.json`, `receipts/agentic/interview-ready.json` |
+
+## Ask targeted questions
+
+Interviewers can use the table above to ask focused questions instead of broad résumé questions:
+
+- How does `$curate-client` turn interview material into Memory-ready Q-A chunks?
+- Where is the immutable goal enforced, and what does it forbid?
+- What does the FastAPI layer own versus `service.py`?
+- What proof says the app is Memory-native and not PostgreSQL-backed?
+- Why is `$hack` limited to bounded SAST here?
+- What does `$ops-terraform` validate, and what does it deliberately not do?
+- Which `$agentic-evals` seam would fail if a future change removed one of these guarantees?
 
 ## Demo surface
 
