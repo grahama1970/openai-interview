@@ -68,6 +68,12 @@ def test_swagger_docs_are_agent_operable() -> None:
     assert operation['externalDocs']['url'] == location['github_url']
     assert 'skills/debugger/run.sh open' in location['debugger_open_command']
 
+    svg_operation = openapi['paths']['/v1/meta/memory-recall-flow.svg']['get']
+    artifact = svg_operation['x-artifact-location']
+    assert artifact['file'] == 'docs/visuals/memory_recall_flow.svg'
+    assert artifact['debugger_open_command'] == 'skills/debugger/run.sh open docs/visuals/memory_recall_flow.svg --line 1 --bridge'
+    assert svg_operation['externalDocs']['url'] == artifact['github_url']
+
 
 def test_memory_recall_flow_svg_renders() -> None:
     client = TestClient(create_app())

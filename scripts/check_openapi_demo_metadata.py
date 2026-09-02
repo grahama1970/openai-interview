@@ -64,8 +64,15 @@ for key, tag in expected.items():
     assert code_location.get("file") == "src/openai_interview/main.py"
     assert code_location.get("symbol")
     assert code_location.get("github_url", "").startswith("https://github.com/grahama1970/openai-interview/blob/main/src/openai_interview/main.py#L")
-    assert op.get("externalDocs", {}).get("url") == code_location.get("github_url")
+    if key != ("GET", "/v1/meta/memory-recall-flow.svg"):
+        assert op.get("externalDocs", {}).get("url") == code_location.get("github_url")
     assert "skills/debugger/run.sh open" in code_location.get("debugger_open_command", "")
+
+svg_operation = ops[("GET", "/v1/meta/memory-recall-flow.svg")]
+artifact_location = svg_operation.get("x-artifact-location") or {}
+assert artifact_location.get("file") == "docs/visuals/memory_recall_flow.svg"
+assert artifact_location.get("debugger_open_command") == "skills/debugger/run.sh open docs/visuals/memory_recall_flow.svg --line 1 --bridge"
+assert svg_operation.get("externalDocs", {}).get("url") == artifact_location.get("github_url")
 
 for key in [k for k in expected if k[0] == "POST"]:
     op = ops[key]

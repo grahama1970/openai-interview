@@ -147,6 +147,19 @@ SWAGGER_UI_PARAMETERS = {
 }
 
 
+def debugger_location(path: str, line: int = 1, symbol: str | None = None) -> dict:
+    command = f"skills/debugger/run.sh open {path} --line {line} --bridge"
+    if symbol:
+        command = f"skills/debugger/run.sh open {path} --function {symbol} --bridge"
+    return {
+        "file": path,
+        "line": line,
+        "symbol": symbol or Path(path).name,
+        "github_url": f"https://github.com/grahama1970/openai-interview/blob/main/{path}#L{line}",
+        "debugger_open_command": command,
+    }
+
+
 def code_location(endpoint) -> dict:
     """Return one route-to-code locator for Swagger, agents, and `$debugger`."""
     source_file = Path(endpoint.__code__.co_filename).resolve()
@@ -154,17 +167,7 @@ def code_location(endpoint) -> dict:
         relative_source = source_file.relative_to(PROJECT_ROOT)
     except ValueError:
         relative_source = source_file
-    line = endpoint.__code__.co_firstlineno
-    return {
-        "file": str(relative_source),
-        "line": line,
-        "symbol": endpoint.__name__,
-        "github_url": f"https://github.com/grahama1970/openai-interview/blob/main/{relative_source}#L{line}",
-        "debugger_open_command": (
-            f"skills/debugger/run.sh open {relative_source} "
-            f"--function {endpoint.__name__} --bridge"
-        ),
-    }
+    return debugger_location(str(relative_source), endpoint.__code__.co_firstlineno, endpoint.__name__)
 
 
 def add_code_locations_to_openapi(app: FastAPI) -> None:
@@ -187,6 +190,13 @@ def add_code_locations_to_openapi(app: FastAPI) -> None:
                         "description": "View source handler",
                         "url": location["github_url"],
                     }
+                    if path == "/v1/meta/memory-recall-flow.svg":
+                        artifact = debugger_location("docs/visuals/memory_recall_flow.svg")
+                        operation["x-artifact-location"] = artifact
+                        operation["externalDocs"] = {
+                            "description": "View SVG source",
+                            "url": artifact["github_url"],
+                        }
         return schema
 
     app.openapi = openapi_with_code_locations
