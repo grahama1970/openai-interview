@@ -22,6 +22,7 @@ from .contracts import (
 )
 from .hack import HackGateway
 from .memory import MemoryGateway
+from .routes.playground import router as playground_router
 from .security import require_api_key
 from .service import EvalService, stable_hash
 
@@ -42,6 +43,7 @@ operations without guessing OpenAI's internal priorities.
 2. **Run `POST /v1/eval/test-all`** for a zero-body readiness check.
 3. **Open `POST /v1/memory/recall`** to inspect source-grounded OpenAI/privacy recall.
 4. **Open `POST /v1/hack/audit`** to inspect bounded SAST receipt output.
+5. **Open `POST /v1/playground/sample-task`** when the interview shifts into live endpoint design.
 
 ---
 
@@ -63,6 +65,11 @@ operations without guessing OpenAI's internal priorities.
 """
 
 DOCS_AGENT_SCRIPT = r"""
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  .lucide { vertical-align: middle; width: 16px; height: 16px; display: inline-block; }
+  .agent-source-sync .lucide { margin-right: 4px; }
+</style>
 <script>
 (() => {
   const routeQids = {
@@ -73,6 +80,8 @@ DOCS_AGENT_SCRIPT = r"""
     'POST /v1/hack/verify': 'swagger.operation.hack-verify',
     'POST /v1/hack/audit': 'swagger.operation.hack-audit',
     'GET /v1/meta/memory-recall-flow.svg': 'swagger.operation.memory-recall-flow-svg',
+    'POST /v1/playground/sample-task': 'swagger.operation.playground-sample-task',
+    'GET /v1/playground/tasks/{task_id}': 'swagger.operation.playground-read-task',
   };
 
   function text(node) {
@@ -81,16 +90,34 @@ DOCS_AGENT_SCRIPT = r"""
 
   let operationsByKey = {};
 
+  function ensurePlaygroundBanner() {
+    if (document.querySelector('[data-qid="swagger.playground-banner"]')) return;
+    const info = document.querySelector('.information-container .info');
+    if (!info) return;
+    const banner = document.createElement('div');
+    banner.setAttribute('data-qid', 'swagger.playground-banner');
+    banner.style.cssText = 'margin:12px 0;padding:12px 14px;border:2px solid #8b5cf6;border-radius:8px;background:#faf5ff;font-size:14px;line-height:1.45';
+    banner.innerHTML = '<strong><i data-lucide="sparkles"></i> Interview Playground</strong><br><a data-qid="swagger.open-playground" href="#/Interview%20Playground">Open /v1/playground/sample-task</a> to copy-paste a route template, run live JSON requests, and reshape endpoints as the interview flows.';
+    info.appendChild(banner);
+    window.lucide?.createIcons();
+  }
+
   function operationKey(block) {
     const method = text(block.querySelector('.opblock-summary-method'));
     const path = text(block.querySelector('.opblock-summary-path')).replace(/\s+/g, '');
     return `${method} ${path}`;
   }
 
-  function visualHref(operation, key) {
+  function responseHref(operation, key) {
     const content = operation?.responses?.['200']?.content || {};
-    const isVisual = content['image/svg+xml'] || content['image/png'];
-    return isVisual && key.startsWith('GET ') ? key.slice(4) : null;
+    const displayable = [
+      'image/svg+xml',
+      'image/png',
+      'text/html',
+      'text/markdown',
+      'application/json',
+    ].some((type) => content[type]);
+    return displayable && key.startsWith('GET ') ? key.slice(4) : null;
   }
 
   function appendSourceSyncPanel(block, key, qid) {
@@ -98,22 +125,24 @@ DOCS_AGENT_SCRIPT = r"""
     if (!operation || block.querySelector(':scope > [data-qid$=".source-sync"]')) return;
     const handler = operation['x-code-location'];
     const artifact = operation['x-artifact-location'];
-    const visual = visualHref(operation, key);
-    if (!handler && !artifact && !visual) return;
+    const response = responseHref(operation, key);
+    if (!handler && !artifact && !response) return;
 
     const panel = document.createElement('div');
     panel.className = 'agent-source-sync';
     panel.setAttribute('data-qid', `${qid}.source-sync`);
     panel.style.cssText = 'margin:10px 20px;padding:12px;border:1px solid #d8dde7;border-radius:6px;background:#f7fbff;font-size:13px;line-height:1.45';
-    const rows = ['<strong>Agent source sync</strong>'];
-    if (handler) rows.push(`Handler: <a data-qid="${qid}.source-handler" href="${handler.github_url}" target="_blank" rel="noreferrer">${handler.file}:${handler.line}</a><br><code data-qid="${qid}.debugger-handler">${handler.debugger_open_command}</code>`);
-    if (artifact) rows.push(`Artifact: <a data-qid="${qid}.source-artifact" href="${artifact.github_url}" target="_blank" rel="noreferrer">${artifact.file}:${artifact.line}</a><br><code data-qid="${qid}.debugger-artifact">${artifact.debugger_open_command}</code>`);
-    if (visual) rows.push(`Visual: <a data-qid="${qid}.open-visual" href="${visual}" target="_blank" rel="noreferrer">open response</a>`);
+    const rows = ['<strong><i data-lucide="waypoints"></i> Agent source sync</strong>'];
+    if (handler) rows.push(`<i data-lucide="code-2"></i> Handler: <a data-qid="${qid}.source-handler" href="${handler.github_url}" target="_blank" rel="noreferrer">${handler.file}:${handler.line}</a><br><i data-lucide="terminal"></i> <code data-qid="${qid}.debugger-handler">${handler.debugger_open_command}</code>`);
+    if (artifact) rows.push(`<i data-lucide="file-code-2"></i> Artifact: <a data-qid="${qid}.source-artifact" href="${artifact.github_url}" target="_blank" rel="noreferrer">${artifact.file}:${artifact.line}</a><br><i data-lucide="terminal"></i> <code data-qid="${qid}.debugger-artifact">${artifact.debugger_open_command}</code>`);
+    if (response) rows.push(`<i data-lucide="chart-no-axes-combined"></i> Show: <a data-qid="${qid}.open-response" href="${response}" target="_blank" rel="noreferrer">open response</a>`);
     panel.innerHTML = rows.join('<div style="height:6px"></div>');
     block.querySelector('.opblock-summary')?.after(panel);
+    window.lucide?.createIcons();
   }
 
   function annotateForAgents() {
+    ensurePlaygroundBanner();
     document.querySelector('a[href="/openapi.json"]')?.setAttribute('data-qid', 'swagger.openapi-json');
     for (const button of document.querySelectorAll('button')) {
       const label = text(button);
@@ -140,6 +169,7 @@ DOCS_AGENT_SCRIPT = r"""
         if (label) button.setAttribute('data-qid', `${qid}.${label}`);
       }
     }
+    window.lucide?.createIcons();
   }
 
   let last = null;
@@ -169,8 +199,42 @@ DOCS_AGENT_SCRIPT = r"""
   setInterval(checkOpenApi, 1000);
   annotateForAgents();
   checkOpenApi();
+  window.lucide?.createIcons();
 })();
 </script>
+"""
+
+EVAL_BATCH_DESCRIPTION = """
+<i data-lucide="shield-check"></i> **Run a memory-first eval batch**
+
+Runs a small batch of claim/seam checks. Each item must start with `$memory`, so unsupported questions block instead of becoming ungrounded claims.
+
+---
+
+<span style="display: flex; align-items: center; gap: 6px;">
+  <i data-lucide="code-2"></i> <strong>Source Handler:</strong>
+  <code>src/openai_interview/main.py::eval_batch</code>
+</span>
+
+<span style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+  <i data-lucide="terminal"></i> <code>skills/debugger/run.sh open src/openai_interview/main.py --function eval_batch --bridge</code>
+</span>
+"""
+
+MEMORY_RECALL_FLOW_DESCRIPTION = """
+<i data-lucide="image"></i> **Memory Recall Diagram (SVG)**
+
+Renders the `$create-svg` visual sequence diagram for memory-native context recall operations.
+
+---
+
+<span style="display: flex; align-items: center; gap: 6px;">
+  <i data-lucide="file-code-2"></i> <strong>Artifact:</strong> <code>docs/visuals/memory_recall_flow.svg</code>
+</span>
+
+<span style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+  <i data-lucide="terminal"></i> <code>skills/debugger/run.sh open docs/visuals/memory_recall_flow.svg --line 1 --bridge</code>
+</span>
 """
 
 TAGS_METADATA = [
@@ -179,6 +243,7 @@ TAGS_METADATA = [
     {"name": "Agentic Safety Evals", "description": "Batch checks for claim and seam coverage."},
     {"name": "Defensive SAST & Audit", "description": "Bounded `$hack` SAST scans and audit receipts."},
     {"name": "Interview Visuals", "description": "Swagger-rendered visual aids generated from project skills."},
+    {"name": "Interview Playground", "description": "Copy-paste live-coding routes for reshaping the control plane during pairing."},
 ]
 
 SWAGGER_UI_PARAMETERS = {
@@ -211,13 +276,23 @@ def code_location(endpoint) -> dict:
     return debugger_location(str(relative_source), endpoint.__code__.co_firstlineno, endpoint.__name__)
 
 
+def openapi_routes(app: FastAPI) -> list:
+    """Return direct routes plus deferred included-router children."""
+    routes = list(app.routes)
+    for route in app.routes:
+        original_router = getattr(route, "original_router", None)
+        if original_router is not None:
+            routes.extend(original_router.routes)
+    return routes
+
+
 def add_code_locations_to_openapi(app: FastAPI) -> None:
     """Expose source links plus debugger hints in `/openapi.json`."""
     default_openapi = app.openapi
 
     def openapi_with_code_locations() -> dict:
         schema = default_openapi()
-        for route in app.routes:
+        for route in openapi_routes(app):
             endpoint = getattr(route, "endpoint", None)
             path = getattr(route, "path", "")
             if endpoint is None or path not in schema.get("paths", {}):
@@ -255,12 +330,15 @@ def create_app() -> FastAPI:
     memory = MemoryGateway()
     evals = EvalService(memory)
     hack = HackGateway(memory)
+    app.include_router(playground_router)
 
     @app.get("/docs", include_in_schema=False)
     def docs() -> HTMLResponse:
         response = get_swagger_ui_html(
             openapi_url=app.openapi_url or "/openapi.json",
             title=f"{app.title} - Swagger UI",
+            swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+            swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
             swagger_ui_parameters=SWAGGER_UI_PARAMETERS,
         )
         html = response.body.decode("utf-8").replace("</body>", f"{DOCS_AGENT_SCRIPT}</body>")
@@ -272,9 +350,10 @@ def create_app() -> FastAPI:
         responses={200: {"content": {"image/svg+xml": {}}}},
         tags=["Interview Visuals"],
         summary="Render the Memory recall flow",
-        description="Returns the `$create-svg` generated diagram that explains how a Swagger request becomes a `$memory recall` result without app-owned database writes.",
+        description=MEMORY_RECALL_FLOW_DESCRIPTION,
     )
     def memory_recall_flow_svg() -> Response:
+        """Render the Lucide-marked Memory recall SVG documentation endpoint."""
         svg = files("openai_interview").joinpath("static/memory_recall_flow.svg").read_text()
         return Response(content=svg, media_type="image/svg+xml")
 
@@ -335,7 +414,7 @@ def create_app() -> FastAPI:
         dependencies=[Depends(require_api_key)],
         tags=["Agentic Safety Evals"],
         summary="Run a memory-first eval batch",
-        description="Runs a small batch of claim/seam checks. Each item must start with `$memory`, so unsupported questions block instead of becoming ungrounded claims.",
+        description=EVAL_BATCH_DESCRIPTION,
     )
     def eval_batch(
         req: EvalBatchRequest = Body(

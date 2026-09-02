@@ -2,7 +2,7 @@
   "version": 2,
   "skill": "openai-interview-control-plane",
   "trials": 3,
-  "proof_scope": "Claim-based and seam-based checks for Graham\u2019s OpenAI interview skill chain: public OpenAI/privacy context grounding, Memory-native recall/persistence, bounded Hack SAST receipts, Terraform handoff, React qid surface, and hot-reload demo loop.",
+  "proof_scope": "Claim-based and seam-based checks for Graham\u2019s OpenAI interview skill chain: public OpenAI/privacy context grounding, Memory-native recall/persistence, bounded Hack SAST receipts, Terraform handoff, React qid surface, and hot-reload demo loop, Swagger Lucide source-sync controls, and the live endpoint playground.",
   "claims": {
     "proves": "Graham can compose skills into a working OpenAI-relevant evidence loop: Memory recall/store, Hack SAST receipt generation, repeated agentic eval proof, Terraform handoff checks, and a small FastAPI/React surface that exposes the workflow.",
     "does_not_prove": "OpenAI internal priorities, Azure deployment, full live Hack session-audit/scanning, Terraform apply, production readiness, or hand-coding performance as the primary claim."
@@ -118,6 +118,14 @@
       "id": "openai_interview.swagger_visual_memory_flow",
       "description": "Swagger can render a create-svg generated Memory recall flow diagram directly from the FastAPI app.",
       "criticality": "optional",
+      "evidence_required": {
+        "deterministic": true
+      }
+    },
+    {
+      "id": "openai_interview.swagger_playground_source_sync",
+      "description": "Swagger exposes Lucide-marked source-sync controls and an interview playground router so candidates can reshape endpoints from a copy-paste template with debugger links.",
+      "criticality": "critical",
       "evidence_required": {
         "deterministic": true
       }
@@ -282,6 +290,15 @@
       "seam_type": "filesystem/http presentation",
       "criticality": "optional",
       "claim_id": "openai_interview.swagger_visual_memory_flow",
+      "required_evidence": [
+        "deterministic"
+      ]
+    },
+    {
+      "seam_id": "swagger.playground_lucide_source_sync",
+      "seam_type": "browser/UI transport",
+      "criticality": "critical",
+      "claim_id": "openai_interview.swagger_playground_source_sync",
       "required_evidence": [
         "deterministic"
       ]
@@ -765,6 +782,33 @@
         "exit_code": 0
       },
       "timeout_seconds": 60
+    },
+    {
+      "name": "openapi-playground-lucide-source-sync",
+      "type": "positive",
+      "evidence_class": "deterministic",
+      "real_world": true,
+      "supports_claims": [
+        "openai_interview.swagger_playground_source_sync",
+        "openai_interview.swagger_demo"
+      ],
+      "seams": [
+        "swagger.playground_lucide_source_sync",
+        "openapi.swagger_demo_metadata"
+      ],
+      "command": [
+        "bash",
+        "-c",
+        "uv run --extra dev python ../scripts/check_openapi_demo_metadata.py && uv run --extra dev pytest -q ../tests/test_api.py::test_playground_sample_task_round_trip && grep -Fq 'routes/playground.py' ../README.md && grep -Fq 'control-plane starting point' ../README.md && echo PLAYGROUND_ROUTE_OK"
+      ],
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "OPENAPI_DEMO_METADATA_OK",
+          "PLAYGROUND_ROUTE_OK"
+        ]
+      },
+      "timeout_seconds": 90
     }
   ]
 }

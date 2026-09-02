@@ -31,6 +31,7 @@ expected_tags = {
     "Agentic Safety Evals",
     "Defensive SAST & Audit",
     "Interview Visuals",
+    "Interview Playground",
 }
 assert {tag["name"] for tag in openapi.get("tags", [])} == expected_tags
 assert SWAGGER_UI_PARAMETERS["tryItOutEnabled"] is True
@@ -38,7 +39,12 @@ assert SWAGGER_UI_PARAMETERS["displayRequestDuration"] is True
 assert SWAGGER_UI_PARAMETERS["docExpansion"] == "list"
 assert "APIKeyHeader" in openapi["components"]["securitySchemes"]
 assert "/openapi.json?reload=" in docs_html
+assert "https://unpkg.com/lucide@latest" in docs_html
+assert "window.lucide?.createIcons()" in docs_html
 assert "data-qid" in docs_html
+assert "swagger.playground-banner" in docs_html
+assert "swagger.operation.playground-sample-task" in docs_html
+assert "data-lucide=\"waypoints\"" in docs_html
 assert "swagger.operation.eval-test-all" in docs_html
 
 ops = {
@@ -54,6 +60,8 @@ expected = {
     ("POST", "/v1/hack/verify"): "Defensive SAST & Audit",
     ("POST", "/v1/hack/audit"): "Defensive SAST & Audit",
     ("GET", "/v1/meta/memory-recall-flow.svg"): "Interview Visuals",
+    ("POST", "/v1/playground/sample-task"): "Interview Playground",
+    ("GET", "/v1/playground/tasks/{task_id}"): "Interview Playground",
 }
 for key, tag in expected.items():
     op = ops[key]
@@ -61,14 +69,25 @@ for key, tag in expected.items():
     assert op.get("summary")
     assert op.get("description")
     code_location = op.get("x-code-location") or {}
-    assert code_location.get("file") == "src/openai_interview/main.py"
+    expected_file = "src/openai_interview/routes/playground.py" if key[1].startswith("/v1/playground/") else "src/openai_interview/main.py"
+    assert code_location.get("file") == expected_file
     assert code_location.get("symbol")
-    assert code_location.get("github_url", "").startswith("https://github.com/grahama1970/openai-interview/blob/main/src/openai_interview/main.py#L")
+    assert code_location.get("github_url", "").startswith(f"https://github.com/grahama1970/openai-interview/blob/main/{expected_file}#L")
     if key != ("GET", "/v1/meta/memory-recall-flow.svg"):
         assert op.get("externalDocs", {}).get("url") == code_location.get("github_url")
     assert "skills/debugger/run.sh open" in code_location.get("debugger_open_command", "")
 
+eval_batch_operation = ops[("POST", "/v1/eval/batch")]
+assert "data-lucide=\"shield-check\"" in eval_batch_operation["description"]
+assert "skills/debugger/run.sh open src/openai_interview/main.py --function eval_batch --bridge" in eval_batch_operation["description"]
+
+playground_operation = ops[("POST", "/v1/playground/sample-task")]
+assert "data-lucide=\"sparkles\"" in playground_operation["description"]
+assert playground_operation["x-code-location"]["file"] == "src/openai_interview/routes/playground.py"
+
 svg_operation = ops[("GET", "/v1/meta/memory-recall-flow.svg")]
+assert "data-lucide=\"image\"" in svg_operation["description"]
+assert "data-lucide=\"file-code-2\"" in svg_operation["description"]
 artifact_location = svg_operation.get("x-artifact-location") or {}
 assert artifact_location.get("file") == "docs/visuals/memory_recall_flow.svg"
 assert artifact_location.get("debugger_open_command") == "skills/debugger/run.sh open docs/visuals/memory_recall_flow.svg --line 1 --bridge"

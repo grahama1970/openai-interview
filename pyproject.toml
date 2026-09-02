@@ -19,6 +19,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.3,<9", "pytest-cov>=6,<8"]
 
+[project.scripts]
+openai-interview-dev = "openai_interview.__main__:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/openai_interview"]
 
