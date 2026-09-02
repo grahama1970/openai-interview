@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from openai_interview.contracts import HackAuditResult, HackVerifyResult, MemoryRecallResult
+from openai_interview.contracts import HackAuditResult, HackVerifyResult, MemoryRecallResult, ObscureStarWarsCharacter
 from openai_interview.main import create_app
 
 
@@ -97,12 +97,37 @@ def test_swagger_docs_are_agent_operable() -> None:
     assert 'mouse-pointer-click' in debugger_operation['description']
     assert debugger_operation['security'] == [{'APIKeyHeader': []}]
 
+    brave_operation = openapi['paths']['/v1/brave-search/star-wars/obscure-characters']['get']
+    assert brave_operation['tags'] == ['Brave Search']
+    assert brave_operation['x-code-location']['file'] == 'src/openai_interview/routes/brave_search.py'
+    assert 'data-lucide="search"' in brave_operation['description']
+
     playground_operation = openapi['paths']['/v1/playground/sample-task']['post']
     assert playground_operation['operationId'] == 'sample_task_v1_playground_sample_task_post'
     assert playground_operation['tags'] == ['Interview Playground']
     assert 'data-lucide="sparkles"' in playground_operation['description']
     assert playground_operation['x-code-location']['file'] == 'src/openai_interview/routes/playground.py'
     assert playground_operation['security'] == [{'APIKeyHeader': []}]
+
+
+def test_obscure_star_wars_character_validation() -> None:
+    row = ObscureStarWarsCharacter(level=5, name='Yarael Poof', origin='Quermia', bio='A quiet Jedi Council deep cut with enough biography text for validation.')
+    assert row.level == 5
+
+
+def test_brave_star_wars_endpoint(monkeypatch) -> None:
+    from openai_interview.routes import brave_search as brave_module
+
+    monkeypatch.setattr(brave_module, 'run_brave_search', lambda: {'results': [{'title': 'source'}]})
+    client = TestClient(create_app())
+    response = client.get('/v1/brave-search/star-wars/obscure-characters', headers={'x-api-key': 'dev-key'})
+    assert response.status_code == 200
+    body = response.json()
+    assert body['schema'] == 'openai_interview.star_wars_obscure_characters.v1'
+    assert body['source'] == 'brave-search'
+    assert body['source_count'] == 1
+    assert len(body['characters']) == 30
+    assert set(body['characters'][0]) == {'level', 'name', 'origin', 'bio'}
 
 
 def test_debugger_open_accepts_only_openapi_commands(monkeypatch) -> None:

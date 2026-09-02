@@ -27,6 +27,7 @@ from .contracts import (
 )
 from .hack import HackGateway
 from .memory import MemoryGateway
+from .routes.brave_search import router as brave_search_router
 from .routes.playground import router as playground_router
 from .security import require_api_key
 from .service import EvalService, stable_hash
@@ -86,6 +87,7 @@ DOCS_AGENT_SCRIPT = r"""
     'POST /v1/hack/audit': 'swagger.operation.hack-audit',
     'GET /v1/meta/memory-recall-flow.svg': 'swagger.operation.memory-recall-flow-svg',
     'POST /v1/meta/debugger/open': 'swagger.operation.debugger-open',
+    'GET /v1/brave-search/star-wars/obscure-characters': 'swagger.operation.brave-star-wars-obscure-characters',
     'POST /v1/playground/sample-task': 'swagger.operation.playground-sample-task',
     'GET /v1/playground/tasks/{task_id}': 'swagger.operation.playground-read-task',
   };
@@ -273,6 +275,7 @@ TAGS_METADATA = [
     {"name": "Agentic Safety Evals", "description": "Batch checks for claim and seam coverage."},
     {"name": "Defensive SAST & Audit", "description": "Bounded `$hack` SAST scans and audit receipts."},
     {"name": "Interview Visuals", "description": "Swagger-rendered visual aids generated from project skills."},
+    {"name": "Brave Search", "description": "Raw `$brave-search` powered discovery endpoints with Pydantic-shaped results."},
     {"name": "Interview Playground", "description": "Copy-paste live-coding routes for reshaping the control plane during pairing."},
 ]
 
@@ -372,6 +375,7 @@ def create_app() -> FastAPI:
     memory = MemoryGateway()
     evals = EvalService(memory)
     hack = HackGateway(memory)
+    app.include_router(brave_search_router)
     app.include_router(playground_router)
 
     @app.get("/docs", include_in_schema=False)

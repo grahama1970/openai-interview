@@ -32,6 +32,7 @@ expected_tags = {
     "Agentic Safety Evals",
     "Defensive SAST & Audit",
     "Interview Visuals",
+    "Brave Search",
     "Interview Playground",
 }
 assert {tag["name"] for tag in openapi.get("tags", [])} == expected_tags
@@ -65,6 +66,7 @@ expected = {
     ("POST", "/v1/hack/audit"): "Defensive SAST & Audit",
     ("GET", "/v1/meta/memory-recall-flow.svg"): "Interview Visuals",
     ("POST", "/v1/meta/debugger/open"): "Interview Visuals",
+    ("GET", "/v1/brave-search/star-wars/obscure-characters"): "Brave Search",
     ("POST", "/v1/playground/sample-task"): "Interview Playground",
     ("GET", "/v1/playground/tasks/{task_id}"): "Interview Playground",
 }
@@ -74,7 +76,12 @@ for key, tag in expected.items():
     assert op.get("summary")
     assert op.get("description")
     code_location = op.get("x-code-location") or {}
-    expected_file = "src/openai_interview/routes/playground.py" if key[1].startswith("/v1/playground/") else "src/openai_interview/main.py"
+    if key[1].startswith("/v1/playground/"):
+        expected_file = "src/openai_interview/routes/playground.py"
+    elif key[1].startswith("/v1/brave-search/"):
+        expected_file = "src/openai_interview/routes/brave_search.py"
+    else:
+        expected_file = "src/openai_interview/main.py"
     assert code_location.get("file") == expected_file
     assert code_location.get("symbol")
     assert code_location.get("github_url", "").startswith(f"https://github.com/grahama1970/openai-interview/blob/main/{expected_file}#L")
@@ -85,6 +92,11 @@ for key, tag in expected.items():
 eval_batch_operation = ops[("POST", "/v1/eval/batch")]
 assert "data-lucide=\"shield-check\"" in eval_batch_operation["description"]
 assert "skills/debugger/run.sh open src/openai_interview/main.py --function eval_batch --bridge" in eval_batch_operation["description"]
+
+brave_operation = ops[("GET", "/v1/brave-search/star-wars/obscure-characters")]
+assert brave_operation["operationId"] == "obscure_star_wars_characters_v1_brave_search_star_wars_obscure_characters_get"
+assert brave_operation["x-code-location"]["file"] == "src/openai_interview/routes/brave_search.py"
+assert "data-lucide=\"search\"" in brave_operation["description"]
 
 playground_operation = ops[("POST", "/v1/playground/sample-task")]
 assert "data-lucide=\"sparkles\"" in playground_operation["description"]

@@ -129,6 +129,15 @@
       "evidence_required": {
         "deterministic": true
       }
+    },
+    {
+      "id": "openai_interview.brave_star_wars_endpoint",
+      "description": "The service exposes a Brave Search endpoint that returns exactly 30 Pydantic-validated obscure Star Wars character records with level, name, origin, and bio fields.",
+      "criticality": "critical",
+      "evidence_required": {
+        "deterministic": true,
+        "live_e2e": true
+      }
     }
   ],
   "seams": [
@@ -301,6 +310,16 @@
       "claim_id": "openai_interview.swagger_playground_source_sync",
       "required_evidence": [
         "deterministic"
+      ]
+    },
+    {
+      "seam_id": "brave_search.star_wars_obscure_characters",
+      "seam_type": "external HTTP/API/provider",
+      "criticality": "critical",
+      "claim_id": "openai_interview.brave_star_wars_endpoint",
+      "required_evidence": [
+        "deterministic",
+        "live_e2e"
       ]
     }
   ],
@@ -806,6 +825,69 @@
         "stdout_contains": [
           "OPENAPI_DEMO_METADATA_OK",
           "PLAYGROUND_ROUTE_OK"
+        ]
+      },
+      "timeout_seconds": 90
+    },
+    {
+      "name": "star-wars-brave-endpoint-live",
+      "type": "positive",
+      "evidence_class": "live_e2e",
+      "real_world": true,
+      "readback": true,
+      "supports_claims": [
+        "openai_interview.brave_star_wars_endpoint"
+      ],
+      "seams": [
+        "brave_search.star_wars_obscure_characters"
+      ],
+      "command": [
+        "bash",
+        "../scripts/probe_star_wars_brave_endpoint.sh"
+      ],
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "openai_interview.probe.star_wars_brave.v1",
+          "PASS",
+          "Yarael Poof"
+        ],
+        "artifacts": [
+          {
+            "path": "../receipts/agentic/star-wars-brave.json",
+            "json_pointer": "/status",
+            "equals": "PASS"
+          },
+          {
+            "path": "../receipts/agentic/star-wars-brave.json",
+            "json_pointer": "/character_count",
+            "equals": 30
+          }
+        ]
+      },
+      "timeout_seconds": 240
+    },
+    {
+      "name": "star-wars-brave-schema-deterministic",
+      "type": "positive",
+      "evidence_class": "deterministic",
+      "real_world": true,
+      "supports_claims": [
+        "openai_interview.brave_star_wars_endpoint"
+      ],
+      "seams": [
+        "brave_search.star_wars_obscure_characters"
+      ],
+      "command": [
+        "bash",
+        "-c",
+        "uv run --extra dev python ../scripts/check_openapi_demo_metadata.py && uv run --extra dev pytest -q ../tests/test_api.py::test_obscure_star_wars_character_validation ../tests/test_api.py::test_brave_star_wars_endpoint && grep -Fq 'ObscureStarWarsCharacter' ../src/openai_interview/contracts.py && grep -Fq 'Field(min_length=30, max_length=30)' ../src/openai_interview/contracts.py && echo STAR_WARS_SCHEMA_OK"
+      ],
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "OPENAPI_DEMO_METADATA_OK",
+          "STAR_WARS_SCHEMA_OK"
         ]
       },
       "timeout_seconds": 90

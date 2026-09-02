@@ -152,6 +152,33 @@ class EvalBatchResult(BaseModel):
     classification: Classification = "internal"
 
 
+class ObscureStarWarsCharacter(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    level: int = Field(
+        ge=1,
+        le=5,
+        description="Obscurity level where 1 is broadly recognizable and 5 is a deep-cut background or EU character.",
+    )
+    name: str = Field(min_length=2, max_length=120, description="Star Wars character name.")
+    origin: str = Field(min_length=2, max_length=120, description="Planet or origin world associated with the character.")
+    bio: str = Field(min_length=40, max_length=500, description="Short public biography for interview/demo use.")
+
+
+class ObscureStarWarsCharactersResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    schema_: Literal["openai_interview.star_wars_obscure_characters.v1"] = Field(
+        default="openai_interview.star_wars_obscure_characters.v1",
+        alias="schema",
+    )
+    query: str
+    source: Literal["brave-search"] = "brave-search"
+    source_count: int = Field(ge=1)
+    characters: list[ObscureStarWarsCharacter] = Field(min_length=30, max_length=30)
+    classification: Classification = "public"
+
+
 class DebuggerOpenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

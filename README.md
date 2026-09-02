@@ -75,7 +75,7 @@ That command verifies the curated OpenAI/privacy probes recall client-scoped chu
 
 ## Demo surface
 
-Use `/docs` first in the interview. Swagger now carries the project explanation, endpoint grouping, one `Authorize` flow for `x-api-key`, named request examples, a zero-body `POST /v1/eval/test-all` readiness check, a Swagger-rendered `$create-svg` Memory recall flow at `GET /v1/meta/memory-recall-flow.svg`, agent-facing `data-qid` markers, Lucide icons for source/action cues, and debugger hints in `/openapi.json`. The React surface remains a fallback if the interviewer asks for an operator workflow instead of API inspection.
+Use `/docs` first in the interview. Swagger now carries the project explanation, endpoint grouping, one `Authorize` flow for `x-api-key`, named request examples, a zero-body `POST /v1/eval/test-all` readiness check, a Swagger-rendered `$create-svg` Memory recall flow at `GET /v1/meta/memory-recall-flow.svg`, a `$brave-search` demo at `GET /v1/brave-search/star-wars/obscure-characters`, agent-facing `data-qid` markers, Lucide icons for source/action cues, and debugger hints in `/openapi.json`. The React surface remains a fallback if the interviewer asks for an operator workflow instead of API inspection.
 
 This is a control-plane starting point, not a finished fancy FastAPI endpoint service. The service is useful because each endpoint is tied back to inspectable code and skill artifacts: `x-code-location` points to the FastAPI handler, `x-artifact-location` points to generated artifacts such as SVG, Markdown, report, or chart files, and the custom Swagger page renders an Agent source sync panel with exact `$debugger open ... --bridge` commands. A project agent can read `/openapi.json`, select an endpoint in Swagger by `data-qid`, open the handler in VS Code, or open the artifact behind a chart/information endpoint without guessing where the code lives.
 
@@ -85,6 +85,7 @@ This is a control-plane starting point, not a finished fancy FastAPI endpoint se
 - `hack.py`: bounded `$hack verify` plus `$hack audit` integration. The audit route is disabled unless `OPENAI_INTERVIEW_ENABLE_HACK_AUDIT=true` and only accepts `self` or `demo_vulnerable_python` targets.
 - `main.py`: FastAPI adapter and custom Swagger/Lucide/source-sync docs surface.
 - `routes/playground.py`: copy-paste live-coding router with Pydantic schemas, auth, and an in-memory `db` harness for endpoint experiments before promotion into durable `$memory` flows.
+- `routes/brave_search.py`: `$brave-search` backed demo route that returns 30 Pydantic-validated obscure Star Wars character rows with `level`, `name`, `origin`, and `bio` fields.
 - `web/`: React/Vite operator surface with `data-qid` checks.
 - `Dockerfile` / `docker-compose.yml`: container handoff that runs as `appuser`, exposes health, and disables Hack powers by default.
 - `infra/terraform/`: skill-scaffolded deployment handoff, checked by `$ops-terraform`.
