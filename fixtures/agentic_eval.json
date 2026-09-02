@@ -81,6 +81,22 @@
         "deterministic": true,
         "live_e2e": true
       }
+    },
+    {
+      "id": "openai_interview.readme_contract",
+      "description": "The README follows the best-practices-readme shape: start-here navigation, proof/non-claims, skill-chain context, and curate-client role clarity.",
+      "criticality": "critical",
+      "evidence_required": {
+        "deterministic": true
+      }
+    },
+    {
+      "id": "openai_interview.immutable_goal",
+      "description": "The repo has a Pydantic-validated immutable_goal.json naming the must/must-not boundaries and primary proof command/artifact.",
+      "criticality": "critical",
+      "evidence_required": {
+        "deterministic": true
+      }
     }
   ],
   "seams": [
@@ -200,6 +216,24 @@
       "required_evidence": [
         "live_e2e"
       ]
+    },
+    {
+      "seam_id": "docs.readme_best_practices",
+      "seam_type": "pure deterministic transform",
+      "criticality": "critical",
+      "claim_id": "openai_interview.readme_contract",
+      "required_evidence": [
+        "deterministic"
+      ]
+    },
+    {
+      "seam_id": "goal.immutable_json",
+      "seam_type": "pure deterministic transform",
+      "criticality": "critical",
+      "claim_id": "openai_interview.immutable_goal",
+      "required_evidence": [
+        "deterministic"
+      ]
     }
   ],
   "cases": [
@@ -303,7 +337,9 @@
         "openai_interview.terraform_handoff",
         "openai_interview.ui_and_dev_loop",
         "openai_interview.docker_runtime",
-        "openai_interview.interview_playbook"
+        "openai_interview.interview_playbook",
+        "openai_interview.readme_contract",
+        "openai_interview.immutable_goal"
       ],
       "seams": [
         "skill_chain.required_skills_present",
@@ -311,7 +347,9 @@
         "terraform.check_handoff",
         "ui.data_qid",
         "docker.container_health",
-        "docs.interview_playbook"
+        "docs.interview_playbook",
+        "docs.readme_best_practices",
+        "goal.immutable_json"
       ],
       "command": [
         "bash",
@@ -323,7 +361,8 @@
           "openai_interview.verify.v1",
           "PASS",
           "PYTHON_STANDARDS_OK",
-          "ops_terraform.check.v1"
+          "ops_terraform.check.v1",
+          "IMMUTABLE_GOAL_OK"
         ]
       },
       "timeout_seconds": 180
@@ -591,6 +630,34 @@
       "expected": {
         "exit_code": 0
       }
+    },
+    {
+      "name": "readme-curate-client-and-immutable-goal",
+      "type": "adversarial",
+      "evidence_class": "deterministic",
+      "real_world": true,
+      "supports_claims": [
+        "openai_interview.readme_contract",
+        "openai_interview.immutable_goal",
+        "openai_interview.skill_chain"
+      ],
+      "seams": [
+        "docs.readme_best_practices",
+        "goal.immutable_json",
+        "skill_chain.required_skills_present"
+      ],
+      "command": [
+        "bash",
+        "-c",
+        "uv run --extra dev python ../scripts/check_immutable_goal.py && grep -Fq '## Start here' ../README.md && grep -Fq '$curate-client' ../README.md && grep -Fq '## Applied best-practices scope' ../README.md && grep -Fq 'This is not a claim of compliance with every `best-practices-*` skill' ../README.md && grep -Fq 'ops-terraform` does not validate Docker Compose' ../README.md"
+      ],
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "IMMUTABLE_GOAL_OK"
+        ]
+      },
+      "timeout_seconds": 60
     }
   ]
 }
