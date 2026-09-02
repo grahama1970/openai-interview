@@ -1,16 +1,16 @@
 {
   "schema": "openai_interview.immutable_goal.v1",
   "classification": "internal",
-  "goal": "Show Graham's OpenAI/Astra-relevant working method through a Memory-native FastAPI cyber-safety eval control-plane demo backed by typed JSON contracts, bounded Hack receipts, retained agentic evals, Docker runtime proof, and plan-only Terraform handoff.",
+  "goal": "Show Graham's OpenAI-relevant working method through a Memory-native FastAPI safety eval control-plane demo backed by typed JSON contracts, bounded Hack receipts, retained agentic evals, Docker runtime proof, and plan-only Terraform handoff.",
   "must": [
     "Use Pydantic-validated JSON contracts for public API and proof artifacts.",
     "Keep durable state behind $memory endpoints; do not add PostgreSQL or direct ArangoDB/Qdrant writes.",
     "Keep $hack integration authorized, bounded, containerized, SAST-focused, and receipt-driven.",
     "Keep Terraform as a validation and plan-only handoff unless a human explicitly approves deployment.",
-    "Keep the interview story focused on Graham's skill-chain method, not on access to OpenAI/Astra internals."
+    "Keep the interview story focused on Graham's skill-chain method, not on guesses about OpenAI internal priorities."
   ],
   "must_not": [
-    "Claim OpenAI/Astra internal knowledge or privileged access.",
+    "Claim OpenAI internal knowledge, priorities, or privileged access.",
     "Claim production readiness or cloud deployment without a fresh live proof.",
     "Treat SAST findings as exploit proof.",
     "Require Fable, Claude-Fable, or browser-oracle reviewers for the core proof chain.",

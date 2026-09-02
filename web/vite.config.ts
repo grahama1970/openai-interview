@@ -8,6 +8,10 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: Number(process.env.WEB_PORT || 5173),
+    watch: {
+      usePolling: true,
+      interval: 500,
+    },
     proxy: {
       '/v1': apiTarget,
       '/health': apiTarget,

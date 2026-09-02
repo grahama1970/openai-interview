@@ -2,10 +2,10 @@
   "version": 2,
   "skill": "openai-interview-control-plane",
   "trials": 3,
-  "proof_scope": "Claim-based and seam-based checks for Graham\u2019s OpenAI interview skill chain: public Astra context grounding, Memory-native recall/persistence, bounded Hack SAST receipts, Terraform handoff, React qid surface, and hot-reload demo loop.",
+  "proof_scope": "Claim-based and seam-based checks for Graham\u2019s OpenAI interview skill chain: public OpenAI/privacy context grounding, Memory-native recall/persistence, bounded Hack SAST receipts, Terraform handoff, React qid surface, and hot-reload demo loop.",
   "claims": {
     "proves": "Graham can compose skills into a working OpenAI-relevant evidence loop: Memory recall/store, Hack SAST receipt generation, repeated agentic eval proof, Terraform handoff checks, and a small FastAPI/React surface that exposes the workflow.",
-    "does_not_prove": "OpenAI/Astra internals, Azure deployment, full live Hack session-audit/scanning, Terraform apply, production readiness, or hand-coding performance as the primary claim."
+    "does_not_prove": "OpenAI internal priorities, Azure deployment, full live Hack session-audit/scanning, Terraform apply, production readiness, or hand-coding performance as the primary claim."
   },
   "capability_claims": [
     {
@@ -102,6 +102,22 @@
       "id": "openai_interview.setup_project_recipe",
       "description": "The project exposes a setup-project recipe that shows interviewers which skills generated the repo and how to audit the setup chain.",
       "criticality": "critical",
+      "evidence_required": {
+        "deterministic": true
+      }
+    },
+    {
+      "id": "openai_interview.swagger_demo",
+      "description": "Swagger/OpenAPI docs explain the interview purpose, group endpoints by skill-owned domains, expose one Authorize flow for x-api-key, and include runnable example request bodies.",
+      "criticality": "critical",
+      "evidence_required": {
+        "deterministic": true
+      }
+    },
+    {
+      "id": "openai_interview.swagger_visual_memory_flow",
+      "description": "Swagger can render a create-svg generated Memory recall flow diagram directly from the FastAPI app.",
+      "criticality": "optional",
       "evidence_required": {
         "deterministic": true
       }
@@ -251,6 +267,24 @@
       "required_evidence": [
         "deterministic"
       ]
+    },
+    {
+      "seam_id": "openapi.swagger_demo_metadata",
+      "seam_type": "pure deterministic transform",
+      "criticality": "critical",
+      "claim_id": "openai_interview.swagger_demo",
+      "required_evidence": [
+        "deterministic"
+      ]
+    },
+    {
+      "seam_id": "swagger.memory_recall_svg_endpoint",
+      "seam_type": "filesystem/http presentation",
+      "criticality": "optional",
+      "claim_id": "openai_interview.swagger_visual_memory_flow",
+      "required_evidence": [
+        "deterministic"
+      ]
     }
   ],
   "cases": [
@@ -271,7 +305,7 @@
       "command": [
         "bash",
         "-c",
-        "grep -Fq 'Graham uses skills as an evidence operating system' ../docs/INTERVIEW_PLAYBOOK.md && grep -Fq 'Fable' ../docs/INTERVIEW_PLAYBOOK.md && grep -Fq 'does not prove OpenAI/Astra internals' ../docs/INTERVIEW_PLAYBOOK.md"
+        "grep -Fq 'Graham uses skills as an evidence operating system' ../docs/INTERVIEW_PLAYBOOK.md && grep -Fq 'Fable' ../docs/INTERVIEW_PLAYBOOK.md && grep -Fq 'does not prove OpenAI internal priorities' ../docs/INTERVIEW_PLAYBOOK.md"
       ],
       "expected": {
         "exit_code": 0
@@ -357,7 +391,8 @@
         "openai_interview.interview_playbook",
         "openai_interview.readme_contract",
         "openai_interview.immutable_goal",
-        "openai_interview.setup_project_recipe"
+        "openai_interview.setup_project_recipe",
+        "openai_interview.swagger_demo"
       ],
       "seams": [
         "skill_chain.required_skills_present",
@@ -368,7 +403,8 @@
         "docs.interview_playbook",
         "docs.readme_best_practices",
         "goal.immutable_json",
-        "setup_project.recipe_audit"
+        "setup_project.recipe_audit",
+        "openapi.swagger_demo_metadata"
       ],
       "command": [
         "bash",
@@ -381,7 +417,8 @@
           "PASS",
           "PYTHON_STANDARDS_OK",
           "ops_terraform.check.v1",
-          "IMMUTABLE_GOAL_OK"
+          "IMMUTABLE_GOAL_OK",
+          "OPENAPI_DEMO_METADATA_OK"
         ]
       },
       "timeout_seconds": 180
@@ -678,6 +715,54 @@
           "IMMUTABLE_GOAL_OK",
           "SETUP_PROJECT_AUDIT_OK"
         ]
+      },
+      "timeout_seconds": 60
+    },
+    {
+      "name": "openapi-swagger-demo-metadata",
+      "type": "positive",
+      "evidence_class": "deterministic",
+      "real_world": true,
+      "supports_claims": [
+        "openai_interview.swagger_demo"
+      ],
+      "seams": [
+        "openapi.swagger_demo_metadata"
+      ],
+      "command": [
+        "uv",
+        "run",
+        "--extra",
+        "dev",
+        "python",
+        "../scripts/check_openapi_demo_metadata.py"
+      ],
+      "expected": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "OPENAPI_DEMO_METADATA_OK"
+        ]
+      },
+      "timeout_seconds": 60
+    },
+    {
+      "name": "swagger-memory-recall-flow-svg",
+      "type": "positive",
+      "evidence_class": "deterministic",
+      "real_world": true,
+      "supports_claims": [
+        "openai_interview.swagger_visual_memory_flow"
+      ],
+      "seams": [
+        "swagger.memory_recall_svg_endpoint"
+      ],
+      "command": [
+        "bash",
+        "-c",
+        "test -f ../docs/visuals/memory_recall_flow.scene.yml && test -f ../docs/visuals/memory_recall_flow.svg && grep -Fq 'Memory recall flow' ../docs/visuals/memory_recall_flow.svg && grep -Fq 'APP NEVER WRITES RAW AQL OR EMBEDDINGS' ../docs/visuals/memory_recall_flow.svg && uv run --extra dev pytest -q ../tests/test_api.py::test_memory_recall_flow_svg_renders"
+      ],
+      "expected": {
+        "exit_code": 0
       },
       "timeout_seconds": 60
     }

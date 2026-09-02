@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "openai-interview-control-plane"
 version = "0.1.0"
-description = "Memory-native FastAPI cyber-safety eval control-plane interview artifact"
+description = "Memory-native FastAPI safety eval control-plane interview artifact"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

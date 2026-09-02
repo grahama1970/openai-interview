@@ -1,8 +1,8 @@
 # OpenAI Interview Control Plane
 
-Memory-native skills demo for an Astra-style cyber-safety eval control plane.
+Memory-native skills demo for an OpenAI-relevant safety eval control plane.
 
-This is not OpenAI software and does not claim access to Astra internals. It shows how Graham works by composing skills: `$brave-search` grounds the public Astra context, `$curate-client` can turn supplied public/client materials into a reusable prep pack, `$memory` recalls and persists evidence, `$hack` runs bounded defensive scans, `$agentic-evals` proves seams repeatedly, and `$terraform`/`$ops-terraform` provide a plan-only deployment handoff.
+This is not OpenAI software and does not claim access to OpenAI internal priorities. It shows how Graham works by composing skills: `$brave-search` grounds public OpenAI/privacy context, `$curate-client` can turn supplied public/client materials into a reusable prep pack, `$memory` recalls and persists evidence, `$hack` runs bounded defensive scans, `$agentic-evals` proves seams repeatedly, and `$terraform`/`$ops-terraform` provide a plan-only deployment handoff.
 
 The FastAPI/React code is the demo surface for that skill chain. It is not the point by itself.
 
@@ -23,7 +23,7 @@ The FastAPI/React code is the demo surface for that skill chain. It is not the p
 
 ## Skill chain
 
-1. `$brave-search` grounds the OpenAI/Astra public context.
+1. `$brave-search` grounds public OpenAI/privacy context.
 2. `$curate-client` is the prep-pack entry point when official OpenAI pages, interview notes, or recruiter-supplied material need to become reusable, Memory-ready client context. This repo does not vendor that source corpus; it shows where the curated packet enters the chain.
 3. `$setup-project` captures the project recipe so the setup can be repeated instead of reconstructed from chat history.
 4. `$best-practices-readme` keeps this README navigable, evidence-aware, and explicit about non-claims.
@@ -74,6 +74,8 @@ That command verifies the curated OpenAI/privacy probes recall client-scoped chu
 
 ## Demo surface
 
+Use `/docs` first in the interview. Swagger now carries the project explanation, endpoint grouping, one `Authorize` flow for `x-api-key`, named request examples, a zero-body `POST /v1/eval/test-all` readiness check, a Swagger-rendered `$create-svg` Memory recall flow at `GET /v1/meta/memory-recall-flow.svg`, agent-facing `data-qid` markers, and `x-code-location` debugger hints in `/openapi.json`. The React surface remains a fallback if the interviewer asks for an operator workflow instead of API inspection.
+
 - `contracts.py`: Pydantic request/response/receipt models.
 - `service.py`: framework-neutral logic.
 - `memory.py`: `$memory` HTTP adapter; ArangoDB/Qdrant stay behind Memory.
@@ -94,6 +96,8 @@ uv run --extra dev pytest
 scripts/dev.sh      # FastAPI hot reload on 127.0.0.1:8080
 scripts/dev-all.sh  # FastAPI hot reload + Vite React hot reload
 scripts/docker_check.sh  # Docker build + container health proof
+# Open http://127.0.0.1:8080/docs, click Authorize, enter dev-key,
+# then run POST /v1/eval/test-all for the zero-body demo check.
 ```
 
 ## Verify
@@ -144,7 +148,7 @@ This is not a claim of compliance with every `best-practices-*` skill in `agent-
 
 | Not claimed | Reason |
 | --- | --- |
-| OpenAI/Astra internals | Only public context and Graham-owned artifacts were used. |
+| OpenAI internal priorities | Only public context and Graham-owned artifacts were used. |
 | Production readiness | This is an interview demo and handoff, not a production deployment. |
 | Azure deployment | Terraform is plan-only; no cloud apply was run. |
 | Exploitability | `$hack` SAST findings are defensive signals, not exploit proof. |

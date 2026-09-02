@@ -26,6 +26,6 @@ goal = ImmutableGoal.model_validate(json.loads((ROOT / "immutable_goal.json").re
 assert goal.schema_ == "openai_interview.immutable_goal.v1"
 assert goal.classification
 assert any("$memory" in item for item in goal.must)
-assert any("OpenAI/Astra internal" in item for item in goal.must_not)
+assert any("OpenAI internal" in item for item in goal.must_not)
 assert goal.primary_proof == "receipts/agentic/interview-ready.json"
 print("IMMUTABLE_GOAL_OK")

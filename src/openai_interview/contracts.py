@@ -30,13 +30,27 @@ class ControlPlaneError(BaseModel):
 
 
 class MemoryRecallRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "q": "OpenAI API data controls privacy engineering",
+                    "scope": "client:openai-privacy",
+                    "collections": ["lessons"],
+                    "tags": ["openai-privacy-kb"],
+                    "k": 3,
+                    "classification": "internal",
+                }
+            ]
+        },
+    )
 
-    q: str = Field(min_length=8)
-    scope: str = "openai-interview"
-    collections: list[str] = Field(default_factory=lambda: ["lessons"])
-    tags: list[str] = Field(default_factory=lambda: ["openai-interview"])
-    k: int = Field(default=5, ge=1, le=25)
+    q: str = Field(min_length=8, description="Question-shaped Memory recall query.")
+    scope: str = Field(default="openai-interview", description="Memory scope for the interview/demo context.")
+    collections: list[str] = Field(default_factory=lambda: ["lessons"], description="Memory collections to search.")
+    tags: list[str] = Field(default_factory=lambda: ["openai-interview"], description="Memory tags that bound recall.")
+    k: int = Field(default=5, ge=1, le=25, description="Maximum Memory items to return.")
     classification: Classification = "internal"
 
 
@@ -75,11 +89,34 @@ class EvalItemRequest(BaseModel):
 
 
 class EvalBatchRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "batch_id": "swagger-demo-openai-privacy",
+                    "purpose": "Show that interview claims are checked against Memory evidence.",
+                    "items": [
+                        {
+                            "item_id": "api-data-controls",
+                            "question": "OpenAI API data controls privacy engineering",
+                            "probe_class": "memory_recall",
+                            "skill_chain": ["memory"],
+                            "classification": "internal",
+                        }
+                    ],
+                    "memory_scope": "client:openai-privacy",
+                    "tags": ["openai-privacy-kb"],
+                    "persist_to_memory": False,
+                    "classification": "internal",
+                }
+            ]
+        },
+    )
 
-    batch_id: str = Field(min_length=1, max_length=128)
-    purpose: str = Field(min_length=8, max_length=500)
-    items: list[EvalItemRequest] = Field(min_length=1, max_length=50)
+    batch_id: str = Field(min_length=1, max_length=128, description="Stable eval batch identifier.")
+    purpose: str = Field(min_length=8, max_length=500, description="Why this eval batch exists.")
+    items: list[EvalItemRequest] = Field(min_length=1, max_length=50, description="Memory-first checks to run.")
     memory_scope: str = "openai-interview"
     tags: list[str] = Field(default_factory=lambda: ["openai-interview", "cyber-safety"])
     persist_to_memory: bool = False
@@ -116,18 +153,39 @@ class EvalBatchResult(BaseModel):
 
 
 class HackVerifyRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {"artifact_root": "/tmp/openai-interview-hack-verify", "classification": "internal"}
+            ]
+        },
+    )
 
-    artifact_root: str | None = None
+    artifact_root: str | None = Field(default=None, description="Optional local receipt output directory for `$hack verify`.")
     classification: Classification = "internal"
 
 
 class HackAuditRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "target_kind": "demo_vulnerable_python",
+                    "tool": "bandit",
+                    "severity": "low",
+                    "persist_to_memory": False,
+                    "memory_collection": "openai_interview_hack_scans",
+                    "classification": "internal",
+                }
+            ]
+        },
+    )
 
-    target_kind: Literal["self", "demo_vulnerable_python"] = "demo_vulnerable_python"
-    tool: Literal["bandit", "semgrep", "all"] = "bandit"
-    severity: Literal["low", "medium", "high"] = "low"
+    target_kind: Literal["self", "demo_vulnerable_python"] = Field(default="demo_vulnerable_python", description="Graham-owned scan target for the bounded demo.")
+    tool: Literal["bandit", "semgrep", "all"] = Field(default="bandit", description="Containerized SAST tool selection.")
+    severity: Literal["low", "medium", "high"] = Field(default="low", description="Minimum reported severity.")
     persist_to_memory: bool = True
     memory_collection: str = "openai_interview_hack_scans"
     classification: Classification = "internal"
