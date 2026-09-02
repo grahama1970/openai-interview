@@ -39,8 +39,9 @@ The setup is meant to be visible to interviewers. The point is not that a small 
 
 | Setup step | Skill | What it contributed | Where to inspect |
 | --- | --- | --- | --- |
-| Interview/client brief | `$curate-client` | OpenAI/privacy prep-pack path: official/client materials become Q-A chunks, Memory recall probes, and a live-evidence prep pack. | `skills/setup-project/configs/openai_interview.yaml`, `skills/curate-client/configs/openai_privacy_2026_09.yaml` |
-| Project recipe | `$setup-project` | Read-only plan/audit showing the required skills, files, README terms, immutable goal, and curate-client handoff. | `skills/setup-project/run.sh plan --config skills/setup-project/configs/openai_interview.yaml` |
+| Interview/client brief | `$curate-client` | OpenAI/privacy prep-pack path: official/client materials become Q-A chunks, Memory recall probes, and a live-evidence prep pack. Current plan evidence reports 98 sources, 16 briefing points, and a 220-question oracle. | `skills/curate-client/run.sh plan --config skills/curate-client/configs/openai_privacy_2026_09.yaml` |
+| Targeted-question recall | `$curate-client` + `$memory` | Interviewers can ask pointed questions against the curated OpenAI/privacy brief and verify the oracle recalls client-scoped chunks. | `skills/curate-client/run.sh verify --config skills/curate-client/configs/openai_privacy_2026_09.yaml` |
+| Project recipe | `$setup-project` | Read-only plan/audit showing the required skills, files, README terms, immutable goal, curate-client handoff, and assembly evidence. | `skills/setup-project/run.sh audit --config skills/setup-project/configs/openai_interview.yaml` |
 | README | `$best-practices-readme` | Start-here navigation, skill provenance, proof table, and non-claims. | `README.md` |
 | API shape | `$best-practices-fastapi` | Pydantic contracts, framework-neutral service layer, FastAPI adapter boundary. | `src/openai_interview/` |
 | Persistence | `$memory` | Recall and durable evidence storage through Memory endpoints only. | `src/openai_interview/memory.py` |
@@ -49,9 +50,19 @@ The setup is meant to be visible to interviewers. The point is not that a small 
 | Deployment handoff | `$terraform` / `$ops-terraform` | Plan-only Terraform module and backend-free validation. | `infra/terraform/`, `scripts/terraform_check.sh` |
 | Proof | `$agentic-evals` | Repeated claim/seam evals, coverage, and interview readiness receipt. | `fixtures/agentic_eval.json`, `receipts/agentic/interview-ready.json` |
 
+## Assembly evidence
+
+`$setup-project audit` emits `setup_project.assembly_evidence.v1`: first commit, current commit, elapsed seconds, and commit count. That gives the interview story a receipt-backed timing/provenance field instead of a vague "quickly built" claim.
+
 ## Ask targeted questions
 
-Interviewers can use the table above to ask focused questions instead of broad résumé questions:
+Interviewers can use the table above to ask focused questions instead of broad résumé questions. The exact read-only brief check is:
+
+```bash
+skills/curate-client/run.sh verify --config skills/curate-client/configs/openai_privacy_2026_09.yaml
+```
+
+That command verifies the curated OpenAI/privacy probes recall client-scoped chunks before any live-evidence use.
 
 - How does `$curate-client` turn interview material into Memory-ready Q-A chunks?
 - Where is the immutable goal enforced, and what does it forbid?
